@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import json
+import asyncio
 import logging
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -8,6 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
 from ..schemas.rag import Citation, SummaryData
 from ..config import settings
+from ..errors import ErrorCode
+from .ai_errors import to_app_exception
 
 logger = logging.getLogger("uvicorn")
 
@@ -32,8 +35,9 @@ class LLMService:
             )
         elif self.provider == "ollama":
             from langchain_ollama import ChatOllama
+            self.model_name = self.model_name or "llama3.2"
             self.llm = ChatOllama(
-                model=self.model_name or "llama3.2",
+                model=self.model_name,
                 base_url=settings.OLLAMA_BASE_URL,
                 temperature=0.3,
             )
@@ -125,6 +129,28 @@ Your task is to answer the user's question, preferring the provided sources but 
 
         response = await self.llm.ainvoke(messages)
         return response.content, citations
+
+    async def generate_grounded_json(self, system_prompt: str, user_prompt: str) -> str:
+        """Run an evidence-only prompt and return the raw (JSON) text.
+
+        Uses Ollama's JSON mode, a context window large enough for the
+        evidence, and a low temperature. Provider failures are mapped to
+        canonical AppExceptions (OLLAMA_UNAVAILABLE, LLM_TIMEOUT, ...).
+        """
+        messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+        if self.provider == "ollama":
+            llm = self.llm.bind(
+                format="json",
+                options={"temperature": settings.GROUNDED_TEMPERATURE, "num_ctx": settings.OLLAMA_NUM_CTX},
+            )
+        else:
+            llm = self.llm
+        try:
+            response = await asyncio.wait_for(llm.ainvoke(messages), timeout=settings.LLM_TIMEOUT_SECONDS)
+        except Exception as e:
+            raise to_app_exception(e, default_code=ErrorCode.LLM_FAILED, model=self.model_name) from e
+        content = response.content
+        return content if isinstance(content, str) else json.dumps(content)
 
     async def generate_summary(self, chunks: list[dict]) -> SummaryData:
         context_parts = []

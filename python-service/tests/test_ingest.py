@@ -30,7 +30,7 @@ class TestIngestYoutube:
         })
 
         assert response.status_code == 400
-        assert "Invalid YouTube URL" in response.json()["detail"]
+        assert response.json()["error"]["code"] == "YT_INVALID_URL"
 
     @patch("app.routers.ingest.embedding_service")
     @patch("app.routers.ingest.chunker")
@@ -55,7 +55,7 @@ class TestIngestYoutube:
     @patch("app.routers.ingest.embedding_service")
     @patch("app.routers.ingest.chunker")
     @patch("app.routers.ingest.YouTubeService")
-    def test_disabled_transcript_returns_400(self, MockYT, MockChunker, MockEmbed, client):
+    def test_disabled_transcript_returns_422(self, MockYT, MockChunker, MockEmbed, client):
         from fastapi import HTTPException
         MockYT.extract_video_id.return_value = "abc123"
         MockYT.get_transcript.side_effect = HTTPException(
@@ -67,8 +67,9 @@ class TestIngestYoutube:
             "url": "https://www.youtube.com/watch?v=abc123"
         })
 
-        assert response.status_code == 400
-        assert "disabled" in response.json()["detail"].lower()
+        # Transcript failures map to the canonical YT_TRANSCRIPT_UNAVAILABLE (422).
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "YT_TRANSCRIPT_UNAVAILABLE"
 
 
 # ── Notes Ingestion ─────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ class TestIngestNotes:
         )
 
         assert response.status_code == 400
-        assert "empty" in response.json()["detail"].lower()
+        assert response.json()["error"]["code"] == "PDF_EMPTY_FILE"
 
     @patch("app.routers.ingest.embedding_service")
     @patch("app.routers.ingest.chunker")

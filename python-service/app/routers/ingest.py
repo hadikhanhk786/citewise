@@ -5,13 +5,15 @@ from uuid import UUID
 
 from ..db.session import get_db
 from ..db.models import RagChunk
-from ..schemas.rag import IngestYoutubeRequest, IngestYoutubeResponse
+from ..schemas.rag import IngestYoutubeRequest, IngestYoutubeResponse, ExtractPdfResponse
 from ..services.youtube import YouTubeService
 from ..services.pdf import PDFService
 from ..services.chunking import Chunker
 from ..services.embedding import EmbeddingService
 from ..errors import AppException, ErrorCode
+from ..config import settings
 
+import asyncio
 import logging
 
 logger = logging.getLogger("uvicorn")
@@ -111,38 +113,54 @@ async def ingest_youtube(
         raise AppException(code, details={"video_id": video_id}) from e
 
 
+async def _read_pdf_upload(file: UploadFile) -> bytes:
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise AppException(ErrorCode.PDF_UNSUPPORTED_TYPE)
+    content_bytes = await file.read(settings.MAX_PDF_BYTES + 1)
+    if len(content_bytes) > settings.MAX_PDF_BYTES:
+        raise AppException(ErrorCode.PDF_TOO_LARGE)
+    if not content_bytes:
+        raise AppException(ErrorCode.PDF_EMPTY_FILE)
+    return content_bytes
+
+
+@router.post("/ingest/pdf/extract", response_model=ExtractPdfResponse)
+async def extract_pdf(file: UploadFile = File(...)):
+    """Validate a PDF and report what text can be extracted, without storing anything."""
+    content_bytes = await _read_pdf_upload(file)
+    doc = await asyncio.to_thread(PDFService.extract_document, content_bytes)
+    return ExtractPdfResponse(
+        pageCount=doc["page_count"],
+        pagesWithText=len(doc["pages"]),
+        characters=sum(len(p["text"]) for p in doc["pages"]),
+    )
+
+
 @router.post("/ingest/pdf")
 async def ingest_pdf(
     request: Request,
     workspaceId: UUID = Form(...),
-    sourceId: str = Form(...),
+    sourceId: str = Form(..., min_length=1, max_length=64),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Parse a PDF, chunk page-by-page, embed, and store in pgvector."""
+    """Parse a PDF, chunk page-by-page, embed, and store in pgvector.
+
+    Each chunk keeps the 1-based physical page number it came from in
+    metadata.page; citations are built from that value.
+    """
     request_id = request.headers.get("X-Request-ID")
     try:
-        if not file.filename or not file.filename.lower().endswith(".pdf"):
-            raise AppException(ErrorCode.PDF_UNSUPPORTED_TYPE)
-
-        content_bytes = await file.read()
-        if not content_bytes:
-            raise AppException(ErrorCode.PDF_EMPTY_FILE)
-
-        try:
-            pages = PDFService.extract_pages(content_bytes)
-        except Exception as e:
-            raise AppException(ErrorCode.PDF_PARSE_FAILED, details={"reason": str(e)}) from e
-
-        if not pages or not any(p.get("text", "").strip() for p in pages):
-            raise AppException(ErrorCode.PDF_EMPTY_FILE)
+        content_bytes = await _read_pdf_upload(file)
+        doc = await asyncio.to_thread(PDFService.extract_document, content_bytes)
+        pages = doc["pages"]
 
         chunks = chunker.chunk_pdf_pages(pages)
         if not chunks:
-            raise AppException(ErrorCode.PDF_PARSE_FAILED)
+            raise AppException(ErrorCode.PDF_NO_TEXT)
 
         texts = [c["text"] for c in chunks]
-        embeddings = embedding_service.embed_documents(texts)
+        embeddings = await asyncio.to_thread(embedding_service.embed_documents, texts)
 
         # Replace any existing chunks for this PDF source
         await db.execute(
@@ -174,7 +192,8 @@ async def ingest_pdf(
 
         return {
             "filename": file.filename,
-            "pages": len(pages),
+            "pages": doc["page_count"],
+            "pagesWithText": len(pages),
             "chunksIndexed": len(rag_chunks),
         }
 
@@ -189,14 +208,13 @@ async def ingest_pdf(
                 "source_type": "PDF",
                 "workspace_id": str(workspaceId),
                 "source_id": sourceId,
-                "filename": file.filename if file else None,
                 "error_code": code,
                 "request_id": request_id,
                 "error": str(e),
             },
             exc_info=True,
         )
-        raise AppException(code, details={"filename": file.filename if file else None}) from e
+        raise AppException(code) from e
 
 
 @router.post("/ingest/notes/upload")

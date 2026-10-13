@@ -86,3 +86,34 @@ class HealthResponse(BaseModel):
     provider: str
     db: str
     embeddings: str
+
+# --- Grounded PDF answers (project chat) ---
+class ExtractPdfResponse(BaseModel):
+    pageCount: int
+    pagesWithText: int
+    characters: int
+
+class GroundedAnswerRequest(BaseModel):
+    workspaceId: UUID
+    documentIds: List[UUID] = Field(..., min_length=1, max_length=200)
+    question: str = Field(..., min_length=1, max_length=4000)
+    topK: Optional[int] = Field(None, ge=1, le=20)
+
+class GroundedSummaryRequest(BaseModel):
+    workspaceId: UUID
+    documentId: UUID
+
+class GroundedCitation(BaseModel):
+    ordinal: int
+    chunkId: str
+    documentId: str
+    title: str
+    page: int
+    excerpt: str
+    quoteVerified: bool
+
+class GroundedAnswerResponse(BaseModel):
+    status: Literal['ANSWERED', 'INSUFFICIENT_EVIDENCE']
+    answer: str
+    citations: List[GroundedCitation]
+    retrievedCount: int

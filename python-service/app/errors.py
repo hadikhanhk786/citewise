@@ -19,10 +19,15 @@ class ErrorCode:
     PDF_EMPTY_FILE = "PDF_EMPTY_FILE"
     PDF_PARSE_FAILED = "PDF_PARSE_FAILED"
     PDF_TOO_LARGE = "PDF_TOO_LARGE"
+    PDF_ENCRYPTED = "PDF_ENCRYPTED"
+    PDF_NO_TEXT = "PDF_NO_TEXT"
+    PDF_TOO_MANY_PAGES = "PDF_TOO_MANY_PAGES"
 
     EMBEDDING_FAILED = "EMBEDDING_FAILED"
     LLM_TIMEOUT = "LLM_TIMEOUT"
     LLM_FAILED = "LLM_FAILED"
+    OLLAMA_UNAVAILABLE = "OLLAMA_UNAVAILABLE"
+    OLLAMA_MODEL_MISSING = "OLLAMA_MODEL_MISSING"
 
     CHAT_NO_CONTEXT = "CHAT_NO_CONTEXT"
     CHAT_FAILED = "CHAT_FAILED"
@@ -41,9 +46,14 @@ _STATUS_BY_CODE: dict[str, int] = {
     ErrorCode.PDF_EMPTY_FILE: 400,
     ErrorCode.PDF_PARSE_FAILED: 422,
     ErrorCode.PDF_TOO_LARGE: 413,
+    ErrorCode.PDF_ENCRYPTED: 422,
+    ErrorCode.PDF_NO_TEXT: 422,
+    ErrorCode.PDF_TOO_MANY_PAGES: 413,
     ErrorCode.EMBEDDING_FAILED: 502,
     ErrorCode.LLM_TIMEOUT: 504,
     ErrorCode.LLM_FAILED: 502,
+    ErrorCode.OLLAMA_UNAVAILABLE: 503,
+    ErrorCode.OLLAMA_MODEL_MISSING: 503,
     ErrorCode.CHAT_NO_CONTEXT: 200,
     ErrorCode.CHAT_FAILED: 500,
     ErrorCode.VALIDATION_ERROR: 422,
@@ -59,6 +69,11 @@ _DEV_MESSAGE: dict[str, str] = {
     ErrorCode.PDF_UNSUPPORTED_TYPE: "File must be a .pdf",
     ErrorCode.PDF_EMPTY_FILE: "PDF is empty or has no extractable text",
     ErrorCode.PDF_PARSE_FAILED: "Failed to parse PDF",
+    ErrorCode.PDF_ENCRYPTED: "PDF is password-protected",
+    ErrorCode.PDF_NO_TEXT: "PDF has no extractable text (scanned/image-only?)",
+    ErrorCode.PDF_TOO_MANY_PAGES: "PDF has too many pages",
+    ErrorCode.OLLAMA_UNAVAILABLE: "Ollama is not reachable",
+    ErrorCode.OLLAMA_MODEL_MISSING: "Ollama model is not installed",
     ErrorCode.EMBEDDING_FAILED: "Embedding pipeline failed",
     ErrorCode.LLM_TIMEOUT: "LLM call timed out",
     ErrorCode.LLM_FAILED: "LLM call failed",

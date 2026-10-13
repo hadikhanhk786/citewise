@@ -4,6 +4,9 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.embeddings import Embeddings
 
+from ..errors import ErrorCode
+from .ai_errors import to_app_exception
+
 class EmbeddingService:
     def __init__(self):
         self.provider = os.getenv("LLM_PROVIDER", "openai").lower()
@@ -27,8 +30,9 @@ class EmbeddingService:
         elif self.provider == "ollama":
             from langchain_ollama import OllamaEmbeddings
             from ..config import settings
+            self.model = self.model or "nomic-embed-text"
             self._embeddings = OllamaEmbeddings(
-                model=self.model or "nomic-embed-text",
+                model=self.model,
                 base_url=settings.OLLAMA_BASE_URL
             )
         else:
@@ -38,12 +42,10 @@ class EmbeddingService:
         try:
             return self._embeddings.embed_query(text)
         except Exception as e:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=502, detail=f"Embedding provider error: {str(e)}")
+            raise to_app_exception(e, default_code=ErrorCode.EMBEDDING_FAILED, model=self.model) from e
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         try:
             return self._embeddings.embed_documents(texts)
         except Exception as e:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=502, detail=f"Embedding provider error: {str(e)}")
+            raise to_app_exception(e, default_code=ErrorCode.EMBEDDING_FAILED, model=self.model) from e

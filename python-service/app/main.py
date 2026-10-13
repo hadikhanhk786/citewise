@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import health, ingest, rag, summarize
+from .routers import health, ingest, rag, summarize, grounded
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from .db.session import engine, Base
@@ -31,8 +31,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # CORS — read from env var ALLOWED_ORIGINS (comma-separated).
-# Defaults to localhost dev origins; set "*" only if explicitly configured.
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+# Only the Node API calls this service (server-to-server, no CORS needed), so by
+# default no browser origin may call it directly. Run it on 127.0.0.1.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 allow_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
@@ -47,6 +48,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(ingest.router)
 app.include_router(rag.router, prefix="/rag")
+app.include_router(grounded.router, prefix="/rag")
 app.include_router(summarize.router, prefix="/summarize")
 
 @app.middleware("http")
