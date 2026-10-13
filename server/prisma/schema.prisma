@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum SourceType {
+  YOUTUBE
+  NOTES
+  PDF
+}
+
+enum SourceStatus {
+  INDEXING
+  READY
+  ERROR
+}
+
+enum NoteProvider {
+  LOCAL
+  NOTION
+}
+
+enum DocType {
+  YOUTUBE_TRANSCRIPT
+  NOTE
+  PDF_DOCUMENT
+}
+
+enum ChatMode {
+  YOUTUBE
+  NOTES
+  PDF
+  HYBRID
+}
+
+enum Sender {
+  USER
+  ASSISTANT
+}
+
+enum ErrorSourceType {
+  PDF
+  YOUTUBE
+  NOTES
+  CHAT
+  SYSTEM
+}
+
+// Models
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          UserRole  @default(MEMBER)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  workspaceMemberships WorkspaceMember[]
+  chatSessions        ChatSession[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  members       WorkspaceMember[]
+  sources       Source[]
+  documents     Document[]
+  chatSessions  ChatSession[]
+  auditLogs     AuditLog[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model Source {
+  id           String       @id @default(uuid())
+  workspaceId  String       @map("workspace_id")
+  type         SourceType   @map("source_type")
+  title        String
+  externalId   String?      @map("external_id") // video_id or collection_id
+  status       SourceStatus @default(INDEXING)
+  errorCode    String?      @map("error_code")
+  errorReason  String?      @map("error_reason")
+  lastSyncAt   DateTime?    @map("last_sync_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  youtubeVideo    YouTubeVideo?
+  notesCollection NotesCollection?
+  pdfDocument     PdfDocument?
+  documents       Document[]
+
+  @@map("sources")
+}
+
+model PdfDocument {
+  id         String   @id @default(uuid())
+  sourceId   String   @unique @map("source_id")
+  filename   String
+  pageCount  Int?     @map("page_count")
+  byteSize   Int?     @map("byte_size")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("pdf_documents")
+}
+
+model YouTubeVideo {
+  id               String   @id @default(uuid())
+  sourceId         String   @unique @map("source_id")
+  videoUrl         String   @map("video_url")
+  videoId          String   @map("video_id")
+  title            String
+  language         String   @default("en")
+  transcriptCached Boolean  @default(false) @map("transcript_cached")
+  summaryCached    Boolean  @default(false) @map("summary_cached")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("youtube_videos")
+}
+
+model NotesCollection {
+  id             String       @id @default(uuid())
+  sourceId       String       @unique @map("source_id")
+  collectionName String       @map("collection_name")
+  provider       NoteProvider @default(LOCAL)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("notes_collections")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  sourceId    String   @map("source_id")
+  type        DocType  @map("doc_type")
+  title       String
+  uri         String // path or virtual uri
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source    Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model ChatSession {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  mode        ChatMode @default(HYBRID)
+  title       String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  sender    Sender
+  content   String
+  citations Json? // Stored as JSONB
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  action      String
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+model ErrorLog {
+  id          String          @id @default(uuid())
+  workspaceId String?         @map("workspace_id")
+  sourceType  ErrorSourceType @map("source_type")
+  sourceId    String?         @map("source_id")
+  endpoint    String
+  errorCode   String          @map("error_code")
+  message     String
+  hint        String?
+  requestId   String?         @map("request_id")
+  metadata    Json?
+  stackTrace  String?         @map("stack_trace")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@index([workspaceId, sourceType, createdAt(sort: Desc)])
+  @@map("error_logs")
+}
