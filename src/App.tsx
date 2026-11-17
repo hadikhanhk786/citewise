@@ -69,7 +69,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <AppContent />
           </BrowserRouter>
         </AuthProvider>

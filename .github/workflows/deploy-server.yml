@@ -1,0 +1,23 @@
+name: Deploy API to Oracle
+
+on:
+  push:
+    branches: [main]
+    paths: [server/**, python-service/**, deploy/**]
+  workflow_dispatch:
+
+concurrency: deploy-server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and rebuild on the server
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          HOST: ${{ secrets.ORACLE_HOST }}
+          USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          install -m 600 /dev/null key && echo "$SSH_KEY" > key
+          ssh -i key -o StrictHostKeyChecking=accept-new "$USER@$HOST" \
+            'cd ~/citewise && git pull --ff-only && cd deploy && sudo docker compose up -d --build && sudo docker image prune -f'

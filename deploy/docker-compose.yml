@@ -1,0 +1,73 @@
+# Production stack for one Oracle Cloud VM. The UI is served from GitHub Pages.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: citewise
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: citewise
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citewise"]
+      interval: 5s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
+  # One-shot: downloads the models on first start, then exits.
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on: [ollama]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "sleep 5 && ollama pull ${OLLAMA_CHAT_MODEL} && ollama pull ${OLLAMA_EMBED_MODEL}"]
+    restart: "no"
+
+  rag:
+    build: ../python-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      # Separate database so Prisma (api) never touches the RAG tables.
+      DATABASE_URL: postgresql+psycopg://citewise:${POSTGRES_PASSWORD}@postgres:5432/rag
+      LLM_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL}
+      EMBEDDING_DIM: ${EMBEDDING_DIM}
+      LLM_TIMEOUT_SECONDS: "300"
+
+  api:
+    build: ../server
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://citewise:${POSTGRES_PASSWORD}@postgres:5432/citewise?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      PY_AI_BASE_URL: http://rag:8000
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["80:80", "443:443"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+volumes:
+  postgres_data:
+  ollama_data:
+  caddy_data:

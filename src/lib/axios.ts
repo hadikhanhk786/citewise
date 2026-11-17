@@ -3,7 +3,7 @@ import { parseApiError } from './errors';
 
 // Create axios instance
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api', // Should be env var in production
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,9 +30,9 @@ apiClient.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Clear token and redirect to login if needed
       // preventing infinite loop if login fails
-      if (!window.location.pathname.startsWith('/login')) {
+      if (!window.location.pathname.startsWith(`${import.meta.env.BASE_URL}login`)) {
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        window.location.href = `${import.meta.env.BASE_URL}login`;
       }
     }
     // Normalize to our ApiError shape and attach for consumers.
