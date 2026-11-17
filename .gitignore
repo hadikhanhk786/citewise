@@ -36,3 +36,6 @@ data/
 server/data/
 .icloud-stuck/
 venv/
+
+# Personal files
+resume.html

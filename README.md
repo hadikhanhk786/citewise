@@ -1,278 +1,229 @@
-# My Learning Copilot
+# Citewise
 
-PERN stack + Python FastAPI RAG service for YouTube transcript ingestion, notes upload, and hybrid chat with citations.
+**An AI reading assistant for your PDFs, YouTube videos, and notes. It answers only from your sources and cites the exact page each answer comes from.**
 
-## How to Test Locally
+Upload a PDF, paste a YouTube link, or sync your notes, then ask questions in plain language. Citewise uses retrieval-augmented generation (RAG) to find the relevant passages and generate an answer. It then **checks every citation against the retrieved text** before showing it to you. If the evidence isn't there, it says so instead of guessing.
+
+---
+
+## Why Citewise?
+
+Most "chat with your PDF" tools let the language model write its own citations, which makes it easy to cite a page that doesn't say what the model claims. Citewise treats the model's output as untrusted:
+
+- **Evidence-only answers.** The model only sees labelled evidence chunks (`[C1]…[Cn]`) and must answer from them.
+- **Verified citations.** A citation is kept only if it points to a chunk that was actually retrieved. The document title and page number come from the database, never from the model.
+- **Quote checking.** Quoted passages are matched against the real chunk text, and unverifiable quotes are flagged.
+- **Honest "I don't know".** When the evidence is too weak, the answer comes back as `INSUFFICIENT_EVIDENCE` instead of a hallucination.
+
+---
+
+## Features
+
+| Area | What it does |
+| --- | --- |
+| 📄 **PDF reader** | Upload PDFs and extract text page by page. Rejects encrypted, corrupt, empty, image-only, or non-PDF files with clear messages (checked by magic bytes, not just the file extension). |
+| 🎥 **YouTube ingestion** | Fetches transcripts, chunks them with timestamps kept, and lets you ask questions about the video or summarize it. |
+| 📝 **Notes ingestion** | Upload Markdown/text notes, chunked by heading. |
+| 💬 **Hybrid RAG chat** | Chat sessions with citations across all your sources, with modes and a `strictSources` option. |
+| ✅ **Grounded answers** | `/rag/answer` and `/rag/summarize-document` return verified, renumbered `[1]`, `[2]` citations with page and excerpt. |
+| 🧠 **Multiple LLM providers** | OpenAI, Google Gemini, or fully local **Ollama**, for both chat and embeddings. |
+| 👥 **Workspaces & RBAC** | JWT auth, workspaces, member roles, and audit logs. |
+| 📊 **Insights dashboard** | Usage analytics and charts. |
+| 🛡️ **Production-style error handling** | One error envelope shared by all services, friendly messages with hints, request-ID correlation, and a persisted `error_logs` table. |
+
+---
+
+## Architecture
+
+```
+┌──────────────────────┐      ┌───────────────────────────┐      ┌──────────────────────────────┐
+│  React 19 + Vite UI  │ ───▶ │  Node.js / Express 5 API  │ ───▶ │  Python FastAPI RAG service  │
+│  (TypeScript)        │      │  Auth · RBAC · Sources ·  │      │  Ingest · Chunk · Embed ·    │
+│  React Query, Router │      │  Chat · Analytics · Prisma│      │  Retrieve · Grounded answers │
+└──────────────────────┘      └─────────────┬─────────────┘      └──────────────┬───────────────┘
+                                            │                                   │
+                                            ▼                                   ▼
+                                  ┌──────────────────────────────────────────────────────┐
+                                  │        PostgreSQL 16 + pgvector (embeddings)         │
+                                  └──────────────────────────────────────────────────────┘
+                                                                                │
+                                                          OpenAI · Gemini · Ollama (LLM + embeddings)
+```
+
+**How a grounded answer is made**
+
+```
+question ─▶ embed ─▶ pgvector top-k ─▶ label chunks [C1..Cn] ─▶ LLM returns JSON
+   {answer, citations:[{ref, quote}], insufficient_evidence}
+─▶ validate: drop unknown refs · take doc/page from DB · verify quotes · renumber [1],[2]
+─▶ ANSWERED (with verified citations)  or  INSUFFICIENT_EVIDENCE
+```
+
+---
+
+## Tech stack
+
+- **Frontend:** React 19, TypeScript, Vite, TanStack React Query, React Router 7, Recharts, react-markdown
+- **API:** Node.js, Express 5, TypeScript, Prisma, Zod, JWT, bcrypt, Multer, Pino, Helmet
+- **AI service:** Python 3.11, FastAPI, LangChain, pypdf, youtube-transcript-api, tiktoken, SQLAlchemy
+- **Data:** PostgreSQL 16 + pgvector
+- **Testing:** Jest + Supertest (Node), pytest (Python)
+- **Infra:** Docker / Docker Compose
+
+---
+
+## Project structure
+
+```
+.
+├── src/                 # React frontend (pages: Login, Dashboard, Sources, Chat, Insights, Admin)
+├── server/              # Express API, Prisma schema & migrations, Jest tests
+│   ├── prisma/
+│   └── src/modules/     # auth, sources, chat, analytics, health
+├── python-service/      # FastAPI RAG service
+│   ├── app/routers/     # ingest, rag, grounded, summarize, health
+│   ├── app/services/    # pdf, chunking, embedding, llm, grounded, youtube
+│   └── tests/
+└── testing/             # shared fixtures + 47-case manual test checklist
+```
+
+---
+
+## Getting started
 
 ### Prerequisites
 
 - Node.js 18+
 - Python 3.11+
-- PostgreSQL with pgvector extension
-- API key for Gemini or OpenAI (set in `python-service/.env`)
+- PostgreSQL with the `pgvector` extension (or Docker)
+- An OpenAI or Gemini API key, **or** a local [Ollama](https://ollama.com) install
 
-### 1. Node/Express Backend Tests (Jest + Supertest)
+### 1. Start PostgreSQL + pgvector
 
-All backend tests use mocks — no running database or Python service required.
+```bash
+cd server
+docker compose up -d postgres
+```
+
+### 2. AI service (FastAPI)
+
+```bash
+cd python-service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env            # set LLM_PROVIDER and API keys / Ollama URL
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. API server (Express)
 
 ```bash
 cd server
 npm install
-npm test
+# create server/.env with DATABASE_URL, JWT_SECRET, PY_AI_BASE_URL=http://localhost:8000
+npx prisma migrate deploy && npx prisma generate
+npm run dev
 ```
 
-This runs all tests in `server/src/__tests__/`:
-- `health.test.ts` — health endpoint with service status mocking
-- `sources.test.ts` — YouTube ingestion, notes upload, source CRUD
-- `chat.test.ts` — session management, message sending, RAG response mocking
-
-To run a specific test file:
+### 4. Frontend
 
 ```bash
-cd server
-npx jest --testPathPattern="sources"
+npm install
+npm run dev                     # http://localhost:5173
 ```
-
-### 2. Python/FastAPI Tests (pytest)
-
-Most tests use mocks. The chunking and YouTube URL tests are pure unit tests with no external deps.
-
-```bash
-cd python-service
-pip install -r requirements.txt
-pip install pytest pytest-asyncio
-
-pytest tests/ -v
-```
-
-Test files:
-- `test_health.py` — health endpoint, root endpoint, DB-down simulation
-- `test_youtube_service.py` — URL parsing, transcript error handling
-- `test_chunking.py` — text splitting, transcript chunking with timestamps
-- `test_ingest.py` — YouTube/Notes ingestion validation (empty files, missing fields)
-- `test_rag.py` — chat validation, strictSources, mode filtering, citation schema
-
-To run a single test file:
-
-```bash
-pytest tests/test_chunking.py -v
-```
-
-### 3. Test Fixtures
-
-Shared fixtures are in `testing/fixtures/`:
-- `youtube-transcript.json` — 15-segment sample transcript
-- `sample-notes.md` — RAG architecture notes document
-- `chat-queries.json` — sample queries with expected citation structures
-
-### 4. Manual Testing Checklist
-
-See `testing/TEST_CHECKLIST.md` for a 47-case structured test plan covering:
-- YouTube happy path + error cases
-- Notes upload + edge cases
-- Hybrid RAG chat + citation correctness
-- strictSources behavior
-- Health endpoints
-- Infrastructure error handling
-
-### 5. Error Response Shape
-
-All endpoints return errors in a consistent format:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR | HTTP_ERROR | INTERNAL_SERVER_ERROR",
-    "message": "Human-readable description"
-  }
-}
-```
-
-Zod validation errors (Node) include a `details` array with field-level issues.
 
 ---
 
-## React + TypeScript + Vite
+## Key API endpoints
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Node API** (`Authorization: Bearer <token>`, `x-workspace-id: <uuid>`)
 
-Currently, two official plugins are available:
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/api/auth/register` · `/api/auth/login` | Create account / get JWT |
+| POST | `/api/sources/pdf` | Upload and index a PDF |
+| POST | `/api/sources/youtube` | Ingest a YouTube video |
+| POST | `/api/sources/notes/upload` | Upload notes |
+| GET / DELETE | `/api/sources` · `/api/sources/:id` | List / delete sources |
+| POST | `/api/sources/:id/reindex` · `/:id/summarize` | Re-index / summarize a source |
+| POST / GET | `/api/chat/sessions` · `/sessions/:id/messages` | Chat with citations |
+| GET | `/api/analytics/dashboard` · `/insights` | Analytics |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Python AI service**
 
-## React Compiler
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/ingest/pdf/extract` | Validate a PDF and extract text per page |
+| POST | `/ingest/pdf` · `/ingest/youtube` · `/ingest/notes/upload` | Chunk, embed, and store |
+| POST | `/rag/chat` | Hybrid RAG chat |
+| POST | `/rag/answer` | Evidence-only answer with verified page citations |
+| POST | `/rag/summarize-document` | Grounded document summary |
+| GET | `/health` | Service + DB health |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Example grounded answer:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```json
+{
+  "status": "ANSWERED",
+  "answer": "The warranty covers manufacturing defects for 24 months [1].",
+  "citations": [
+    { "ordinal": 1, "documentId": "…", "title": "Product Manual.pdf", "page": 12,
+      "excerpt": "…covers defects in materials and workmanship for 24 months…", "quoteVerified": true }
+  ]
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Testing
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Node API (fully mocked: no DB or AI service needed)
+cd server && npm test
+
+# Python AI service
+cd python-service
+pip install -r requirements-dev.txt
+pytest tests/ -v
 ```
+
+The Python suite covers PDF extraction edge cases (encrypted, corrupt, and image-only files), citation validation, the grounded-answer API, chunking, YouTube parsing, and ingestion. See [`testing/TEST_CHECKLIST.md`](testing/TEST_CHECKLIST.md) for the 47-case manual test plan.
+
+---
 
 ## Error handling & debugging
 
-All three services (React, Node, Python) share a single error envelope so users
-see friendly, actionable messages while operators still get enough detail to
-debug an incident.
-
-### Standard API error shape
-
-Every failing API response from Node (and from the Python service) conforms to:
+All three services share one error envelope:
 
 ```json
 {
   "error": {
-    "code": "YT_TRANSCRIPT_UNAVAILABLE",
-    "message": "We couldn't get subtitles for this video.",
-    "hint": "Try another video with captions enabled.",
+    "code": "PDF_EMPTY_FILE",
+    "message": "This file appears to be empty.",
+    "hint": "Upload a file with readable text.",
     "requestId": "a5d2…",
-    "details": { }
+    "details": {}
   }
 }
 ```
 
-Canonical codes live in:
-- `server/src/lib/error-codes.ts` — source of truth for Node + UI fallbacks
-- `python-service/app/errors.py` — Python mirror (keep these in sync)
+- Canonical codes live in `server/src/lib/error-codes.ts` and are mirrored in `python-service/app/errors.py`. Examples: `YT_INVALID_URL`, `YT_TRANSCRIPT_UNAVAILABLE`, `PDF_UNSUPPORTED_TYPE`, `PDF_EMPTY_FILE`, `EMBEDDING_FAILED`, `LLM_TIMEOUT`, `AI_SERVICE_DOWN`, `OLLAMA_UNAVAILABLE`, `DB_UNAVAILABLE`.
+- Every request carries an `X-Request-ID` from the browser through Node to Python, so one ID traces a failure across all services.
+- Errors are saved to an `error_logs` table (workspace, source type, endpoint, code, hint, metadata; stack trace only outside production), indexed for per-workspace debugging.
+- The UI shows friendly messages with **Retry** actions on failed sources, and chat threads stay coherent even when the AI service fails.
 
-Examples: `YT_INVALID_URL`, `YT_TRANSCRIPT_UNAVAILABLE`, `PDF_UNSUPPORTED_TYPE`,
-`PDF_EMPTY_FILE`, `EMBEDDING_FAILED`, `LLM_TIMEOUT`, `AI_SERVICE_DOWN`,
-`DB_UNAVAILABLE`.
+---
 
-### Persistent error log (`error_logs` table)
+## Roadmap
 
-Every error caught by the Node global error handler — plus ingestion and chat
-failures — is persisted to the `error_logs` table:
+- [x] Grounded PDF answers with verified page citations
+- [ ] Projects and document storage (in progress)
+- [ ] Clickable citations that open the PDF at the cited page
+- [ ] OCR for scanned / image-only PDFs
+- [ ] One-command Docker Compose for the full stack
 
-| column        | notes                                             |
-| ------------- | ------------------------------------------------- |
-| `id`          | uuid                                              |
-| `workspace_id`| nullable (for unauthenticated failures)           |
-| `source_type` | `PDF` \| `YOUTUBE` \| `NOTES` \| `CHAT` \| `SYSTEM` |
-| `source_id`   | nullable                                          |
-| `endpoint`    | e.g. `/api/sources/pdf`                           |
-| `error_code`  | canonical code                                    |
-| `message`     | friendly message returned to the client          |
-| `hint`        | optional next-step for the user                   |
-| `request_id`  | same id echoed in the `X-Request-ID` header       |
-| `metadata`    | jsonb — filename, url, mode, …                    |
-| `stack_trace` | captured only when `NODE_ENV !== 'production'`    |
-| `created_at`  | timestamp                                         |
+---
 
-Indexed on `(workspace_id, source_type, created_at DESC)` for fast per-workspace
-debugging queries.
+## Author
 
-Migration: `server/prisma/migrations/20260409140000_add_error_logs`. Apply with:
-
-```bash
-cd server && npx prisma migrate deploy && npx prisma generate
-```
-
-> After running `prisma generate`, remove the `as any` casts and local
-> `ErrorSourceType` shims in `errorLog.service.ts`, `sources.service.ts`, and
-> `middleware/error-handler.ts` — the generated client exposes the real types.
-
-### Request correlation
-
-Every request gets an `X-Request-ID` (existing header passes through; otherwise
-a uuid is generated). The Node axios client forwards it to the Python service,
-Python logs it on every structured error, and the frontend surfaces it via the
-`requestId` field in the error envelope so users can cite it in support.
-
-### Frontend behavior
-
-- `src/lib/errors.ts` — `parseApiError(err)` turns any axios failure into the
-  canonical `ApiError` shape, with a fallback message map for network failures.
-- `src/lib/axios.ts` attaches `error.apiError` on every rejection.
-- **Sources page**: ERROR rows show an inline friendly message from
-  `source.errorReason` and the normal Re-index button is replaced with a
-  **Retry** button that clears `errorCode`/`errorReason` on success.
-- **Chat page**: On failure we surface a toast and refetch messages — the Node
-  chat service has already persisted a friendly fallback assistant message so
-  the thread stays coherent.
-
-### Friendly message mapping (examples)
-
-| code                       | message                                              | hint                                              |
-| -------------------------- | ---------------------------------------------------- | ------------------------------------------------- |
-| `YT_INVALID_URL`           | That doesn't look like a valid YouTube link.         | Please paste a full YouTube URL.                  |
-| `YT_TRANSCRIPT_UNAVAILABLE`| We couldn't get subtitles for this video.            | Try another video with captions enabled.         |
-| `PDF_EMPTY_FILE`           | This file appears to be empty.                       | Upload a file with readable text.                |
-| `EMBEDDING_FAILED`         | We couldn't process your content right now.          | Please try again shortly.                         |
-| `AI_SERVICE_DOWN`          | Our AI service is temporarily unavailable.           | Please try again in a few moments.               |
-
-### Example log rows
-
-```sql
-SELECT source_type, error_code, endpoint, message, created_at
-FROM error_logs
-WHERE workspace_id = $1
-ORDER BY created_at DESC
-LIMIT 10;
-```
-
-```
- source_type | error_code                | endpoint               | message
--------------+---------------------------+------------------------+----------------------------------------------------
- YOUTUBE     | YT_TRANSCRIPT_UNAVAILABLE | /api/sources/youtube   | We couldn't get subtitles for this video.
- PDF         | PDF_EMPTY_FILE            | /api/sources/pdf       | This file appears to be empty.
- CHAT        | LLM_TIMEOUT               | /api/chat              | The assistant took too long to respond.
- SYSTEM      | AI_SERVICE_DOWN           | /api/sources/pdf       | Our AI service is temporarily unavailable.
-```
+**Hadi Khan** · [GitHub @hadikhanhk786](https://github.com/hadikhanhk786)
