@@ -17,7 +17,7 @@ for port in 80 443; do
   sudo iptables -C INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null ||
     sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport $port -j ACCEPT
 done
-sudo apt-get install -y iptables-persistent >/dev/null 2>&1 || true
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1 || true
 sudo netfilter-persistent save
 
 # Code
