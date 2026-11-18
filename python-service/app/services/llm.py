@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
-from ..schemas.rag import Citation, SummaryData
+from ..schemas.rag import Citation
 from ..config import settings
 from ..errors import ErrorCode
 from .ai_errors import to_app_exception
@@ -151,79 +151,6 @@ Your task is to answer the user's question, preferring the provided sources but 
             raise to_app_exception(e, default_code=ErrorCode.LLM_FAILED, model=self.model_name) from e
         content = response.content
         return content if isinstance(content, str) else json.dumps(content)
-
-    async def generate_summary(self, chunks: list[dict]) -> SummaryData:
-        context_parts = []
-        for chunk in chunks:
-            meta = chunk.get("metadata", {})
-            start = meta.get("start")
-            end = meta.get("end")
-            ts = ""
-            if start is not None:
-                ts = f"[{self._format_ts_display(start)} - {self._format_ts_display(end)}] "
-            context_parts.append(f"{ts}{chunk['content']}")
-
-        context_str = "\n\n".join(context_parts)
-
-        system_prompt = """You are a helpful assistant. Summarize the transcript and return JSON only.
-
-Return this exact JSON structure with no extra text:
-{
-  "overview": "2-3 sentence summary here",
-  "keyPoints": ["point 1", "point 2", "point 3", "point 4", "point 5"],
-  "snapshotMoments": [
-    {"timestamp": 12.5, "label": "Short description of what happens at this moment"},
-    {"timestamp": 45.0, "label": "Another important moment"}
-  ]
-}
-
-Rules:
-- overview: 2-3 sentences describing the main topic.
-- keyPoints: exactly 5 strings, each a key idea from the transcript.
-- snapshotMoments: 3 to 5 objects. Each must have:
-    - timestamp: a number (seconds) from the timestamps shown in the transcript (e.g. [01:23 - 01:45] means timestamp 83).
-    - label: a short phrase (max 8 words) describing what is visually happening or being explained at that moment.
-  Pick moments that represent important transitions, key explanations, or visually rich content.
-  Use the EXACT numeric second value from the transcript timestamps. Do not invent timestamps.
-- Output valid JSON only. No markdown, no explanation."""
-
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Transcript:\n{context_str[:4000]}")
-        ]
-
-        llm = self.llm.bind(format="json") if self.provider == "ollama" else self.llm
-        response = await llm.ainvoke(messages)
-        raw = response.content.strip()
-
-        # Strip markdown fences if present
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw[:-3]
-            raw = raw.strip()
-
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            logger.warning("LLM returned non-JSON summary, attempting recovery", extra={
-                "raw_response_length": len(raw),
-            })
-            data = {
-                "overview": raw[:500],
-                "keyPoints": ["Summary generation produced unstructured output. Please retry."],
-            }
-
-        if not data.get("overview") and not data.get("keyPoints"):
-            logger.error("LLM returned empty summary JSON", extra={"raw": raw[:200]})
-            raise ValueError("LLM returned an empty summary. The transcript may be too long for this model.")
-
-        return SummaryData(
-            overview=data.get("overview", ""),
-            keyPoints=data.get("keyPoints", []),
-            chapters=data.get("chapters"),
-            snapshotMoments=data.get("snapshotMoments") or [],
-        )
 
     def _format_ts_display(self, seconds: float | None) -> str:
         if seconds is None:

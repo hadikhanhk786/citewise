@@ -9,13 +9,6 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'testing', 'f
 
 
 @pytest.fixture
-def sample_transcript():
-    """Load the sample YouTube transcript fixture."""
-    with open(os.path.join(FIXTURES_DIR, 'youtube-transcript.json')) as f:
-        return json.load(f)
-
-
-@pytest.fixture
 def sample_notes_content():
     """Load the sample markdown notes fixture."""
     with open(os.path.join(FIXTURES_DIR, 'sample-notes.md')) as f:

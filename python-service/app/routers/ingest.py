@@ -5,8 +5,7 @@ from uuid import UUID
 
 from ..db.session import get_db
 from ..db.models import RagChunk
-from ..schemas.rag import IngestYoutubeRequest, IngestYoutubeResponse, ExtractPdfResponse
-from ..services.youtube import YouTubeService
+from ..schemas.rag import ExtractPdfResponse
 from ..services.pdf import PDFService
 from ..services.chunking import Chunker
 from ..services.embedding import EmbeddingService
@@ -22,96 +21,6 @@ router = APIRouter()
 
 chunker = Chunker()
 embedding_service = EmbeddingService()
-
-@router.post("/ingest/youtube", response_model=IngestYoutubeResponse)
-async def ingest_youtube(
-    req: IngestYoutubeRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    request_id = request.headers.get("X-Request-ID")
-    # 1. Parse Video ID
-    video_id = YouTubeService.extract_video_id(str(req.url))
-    if not video_id:
-        raise AppException(ErrorCode.YT_INVALID_URL)
-
-    try:
-        # 2. Fetch Transcript
-        transcript = YouTubeService.get_transcript(video_id)
-        
-        # 3. Chunk
-        chunks = chunker.chunk_transcript(transcript)
-        
-        # 4. Embed
-        texts = [c['text'] for c in chunks]
-        embeddings = embedding_service.embed_documents(texts)
-        
-        # 5. DB Transaction
-        # Delete existing chunks for this source
-        await db.execute(
-            delete(RagChunk).where(
-                RagChunk.workspace_id == req.workspaceId,
-                RagChunk.source_type == 'YOUTUBE',
-                RagChunk.source_id == video_id
-            )
-        )
-        
-        # Insert new chunks
-        title = await YouTubeService.get_video_title(video_id)
-        
-        rag_chunks = []
-        for i, chunk in enumerate(chunks):
-            rag_chunks.append(RagChunk(
-                workspace_id=req.workspaceId,
-                source_type='YOUTUBE',
-                source_id=video_id,
-                doc_id=video_id, # For youtube, source_id == doc_id
-                chunk_index=i,
-                content=chunk['text'],
-                metadata_={
-                    "start": chunk['start'],
-                    "end": chunk['end'],
-                    "title": title
-                },
-                embedding=embeddings[i]
-            ))
-        
-        db.add_all(rag_chunks)
-        await db.commit()
-        
-        return IngestYoutubeResponse(
-            videoId=video_id,
-            title=title,
-            chunksIndexed=len(rag_chunks)
-        )
-
-    except AppException:
-        raise
-    except Exception as e:
-        msg = str(e).lower()
-        if "transcript" in msg or "subtitle" in msg or "caption" in msg:
-            code = ErrorCode.YT_TRANSCRIPT_UNAVAILABLE
-        elif "not found" in msg or "404" in msg:
-            code = ErrorCode.YT_VIDEO_NOT_FOUND
-        elif "embed" in msg:
-            code = ErrorCode.EMBEDDING_FAILED
-        else:
-            code = ErrorCode.INTERNAL_SERVER_ERROR
-        logger.error(
-            "YouTube ingest failed",
-            extra={
-                "event": "INGESTION_FAILED",
-                "source_type": "YOUTUBE",
-                "workspace_id": str(req.workspaceId),
-                "url": str(req.url),
-                "error_code": code,
-                "request_id": request_id,
-                "error": str(e),
-            },
-            exc_info=True,
-        )
-        raise AppException(code, details={"video_id": video_id}) from e
-
 
 async def _read_pdf_upload(file: UploadFile) -> bytes:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
