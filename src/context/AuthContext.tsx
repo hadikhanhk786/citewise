@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const { data } = await apiClient.get('/me');
+                    const { data } = await apiClient.get('/auth/me');
                     setUser(data);
                     if (data?.workspaceMemberships?.[0]) {
                         localStorage.setItem('workspaceId', data.workspaceMemberships[0].workspaceId);
