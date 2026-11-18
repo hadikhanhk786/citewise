@@ -23,6 +23,8 @@ export const ChatPage: React.FC = () => {
     const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
     const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+    const [pendingText, setPendingText] = useState<string | null>(null);
+    const [waitSeconds, setWaitSeconds] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const sourcePickerRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +48,14 @@ export const ChatPage: React.FC = () => {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages.data]);
+    }, [messages.data, pendingText]);
+
+    // Count seconds while waiting so a slow local model doesn't look frozen.
+    useEffect(() => {
+        if (pendingText === null) return;
+        const timer = setInterval(() => setWaitSeconds(s => s + 1), 1000);
+        return () => clearInterval(timer);
+    }, [pendingText]);
 
     useEffect(() => {
         if (sessions.data && sessions.data.length > 0 && !selectedSession && !isNewChat) {
@@ -58,6 +67,8 @@ export const ChatPage: React.FC = () => {
         if (!inputText.trim()) return;
         const text = inputText;
         setInputText('');
+        setPendingText(text);
+        setWaitSeconds(0);
 
         let sessionId = selectedSession;
         if (!sessionId) {
@@ -69,6 +80,7 @@ export const ChatPage: React.FC = () => {
                 setIsNewChat(false);
             } catch (error) {
                 console.error('Failed to create session', error);
+                setPendingText(null);
                 return;
             }
         }
@@ -86,6 +98,7 @@ export const ChatPage: React.FC = () => {
                 toast.addToast(parseApiError(e).message, 'error');
             }
         }
+        setPendingText(null);
     };
 
     const handleNewChat = () => {
@@ -299,6 +312,25 @@ export const ChatPage: React.FC = () => {
                                 </div>
                             </div>
                         ))
+                    )}
+                    {pendingText !== null && (
+                        <>
+                            <div className="message message-user">
+                                <div className="message-avatar">AK</div>
+                                <div className="message-body">
+                                    <div className="message-content">{pendingText}</div>
+                                </div>
+                            </div>
+                            <div className="message message-assistant" aria-live="polite">
+                                <div className="message-avatar">AI</div>
+                                <div className="message-body">
+                                    <div className="message-content message-thinking">
+                                        Thinking<span className="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+                                        <span className="thinking-time">{waitSeconds}s</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
                     )}
                     <div ref={messagesEndRef} />
                 </div>

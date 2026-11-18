@@ -95,10 +95,12 @@ export const useSendMessage = () => {
       strictSources?: boolean;
       sourceIds?: string[];
     }) => api.sendChatMessage(sessionId, message, mode, strictSources ?? false, sourceIds),
-    onSuccess: (_, { sessionId }) => {
-      qc.invalidateQueries({ queryKey: ['chat', 'messages', sessionId] });
-      qc.invalidateQueries({ queryKey: ['chat', 'sessions'] });
-    },
+    // Returning the promise makes mutateAsync wait for the refetch, so the
+    // optimistic bubble is replaced without a flicker.
+    onSuccess: (_, { sessionId }) => Promise.all([
+      qc.invalidateQueries({ queryKey: ['chat', 'messages', sessionId] }),
+      qc.invalidateQueries({ queryKey: ['chat', 'sessions'] }),
+    ]),
     // Even on failure, the server persists a fallback assistant message so
     // the thread stays coherent — refetch so the user sees it.
     onError: (_err, { sessionId }) => {
