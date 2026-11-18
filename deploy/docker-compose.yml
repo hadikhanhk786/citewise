@@ -30,6 +30,17 @@ services:
     entrypoint: ["sh", "-c", "sleep 5 && ollama pull ${OLLAMA_CHAT_MODEL} && ollama pull ${OLLAMA_EMBED_MODEL}"]
     restart: "no"
 
+  # Sends chat to a Kaggle GPU while one is registered (see kaggle/), else to local Ollama.
+  gpu-router:
+    image: python:3.12-slim
+    restart: unless-stopped
+    command: ["python", "-u", "/app/router.py"]
+    depends_on: [ollama]
+    environment:
+      GPU_TOKEN: ${GPU_TOKEN}
+    volumes:
+      - ./gpu-router:/app:ro
+
   rag:
     build: ../python-service
     restart: unless-stopped
@@ -39,7 +50,7 @@ services:
       # Separate database so Prisma (api) never touches the RAG tables.
       DATABASE_URL: postgresql+psycopg://citewise:${POSTGRES_PASSWORD}@postgres:5432/rag
       LLM_PROVIDER: ollama
-      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://gpu-router:11434
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
       OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL}
       EMBEDDING_DIM: ${EMBEDDING_DIM}
@@ -62,7 +73,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
-    depends_on: [api]
+    depends_on: [api, gpu-router]
     ports: ["80:80", "443:443"]
     environment:
       API_DOMAIN: ${API_DOMAIN}

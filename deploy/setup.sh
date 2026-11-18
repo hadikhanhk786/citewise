@@ -30,6 +30,7 @@ if [ ! -f .env ]; then
   sed -e "s/^API_DOMAIN=.*/API_DOMAIN=${ip//./-}.sslip.io/" \
       -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" \
       -e "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" \
+      -e "s/^GPU_TOKEN=.*/GPU_TOKEN=$(openssl rand -hex 24)/" \
       .env.example > .env
   chmod 600 .env
 fi
