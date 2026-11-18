@@ -16,7 +16,9 @@ declare module 'axios' {
 
 export const aiClient = axios.create({
   baseURL: env.PY_AI_BASE_URL,
-  timeout: 45000, // 45s
+  // Local CPU models and OCR of scanned PDFs can take minutes; match the RAG
+  // service's own LLM_TIMEOUT_SECONDS (300) instead of cutting answers off.
+  timeout: 300000, // 5 min
 });
 
 aiClient.interceptors.request.use((config) => {

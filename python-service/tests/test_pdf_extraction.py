@@ -60,6 +60,25 @@ class TestExtractDocument:
         assert e.value.code == "PDF_NO_TEXT"
         assert e.value.details["pageCount"] == 2
 
+    def test_scanned_pages_are_ocrd_in_page_order(self, monkeypatch):
+        calls = []
+        def fake_ocr(file_bytes, page_numbers):
+            calls.append(page_numbers)
+            return {1: "Scanned  first page\n\n\n\nmore", 3: "   "}
+        monkeypatch.setattr("app.services.pdf._ocr_pages", fake_ocr)
+        doc = PDFService.extract_document(make_pdf(["", "Typed page two", ""]))
+        assert calls == [[1, 3]]  # only pages without a text layer
+        assert [(p["page"], p["text"]) for p in doc["pages"]] == [
+            (1, "Scanned  first page\n\nmore"),
+            (2, "Typed page two"),
+        ]
+
+    def test_ocr_finding_nothing_still_reports_no_text(self, monkeypatch):
+        monkeypatch.setattr("app.services.pdf._ocr_pages", lambda b, pages: {})
+        with pytest.raises(AppException) as e:
+            PDFService.extract_document(make_pdf(["", ""]))
+        assert e.value.code == "PDF_NO_TEXT"
+
     def test_too_many_pages(self, monkeypatch):
         monkeypatch.setattr("app.services.pdf.settings.MAX_PDF_PAGES", 2)
         with pytest.raises(AppException) as e:

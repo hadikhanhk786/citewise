@@ -1,7 +1,11 @@
 from __future__ import annotations
 from typing import List, Dict, Any
 import io
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 
 from pypdf import PdfReader
 
@@ -17,6 +21,32 @@ def _normalise_page_text(text: str) -> str:
     return text.strip()
 
 
+def _ocr_pages(file_bytes: bytes, page_numbers: List[int]) -> Dict[int, str]:
+    """OCR pages that have no text layer (scanned PDFs) with poppler + Tesseract.
+
+    Returns {} when the tools are not installed (e.g. local dev), so callers
+    fall back to the old "no extractable text" behaviour.
+    """
+    if not page_numbers or not (shutil.which("pdftoppm") and shutil.which("tesseract")):
+        return {}
+    texts: Dict[int, str] = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        src = os.path.join(tmp, "in.pdf")
+        with open(src, "wb") as f:
+            f.write(file_bytes)
+        for n in page_numbers[: settings.MAX_OCR_PAGES]:
+            img = os.path.join(tmp, f"p{n}")
+            try:
+                subprocess.run(["pdftoppm", "-f", str(n), "-l", str(n), "-r", "200", "-gray", "-png",
+                                "-singlefile", src, img], check=True, capture_output=True, timeout=60)
+                result = subprocess.run(["tesseract", f"{img}.png", "-", "-l", settings.OCR_LANGS],
+                                        check=True, capture_output=True, text=True, timeout=120)
+                texts[n] = result.stdout
+            except (subprocess.SubprocessError, OSError):
+                continue
+    return texts
+
+
 class PDFService:
     """Parse PDF bytes into per-page text records.
 
@@ -29,8 +59,8 @@ class PDFService:
     def extract_document(file_bytes: bytes) -> Dict[str, Any]:
         """Return {"page_count": int, "pages": [{"page": int, "text": str}]}.
 
-        Pages without extractable text are omitted from "pages" but still
-        counted in "page_count". Raises AppException with a specific code for
+        Pages without a text layer are OCR'd; pages that still have no text are
+        omitted from "pages" but counted in "page_count". Raises AppException with a specific code for
         empty, non-PDF, corrupt, encrypted, oversized, or image-only files.
         """
         if not file_bytes:
@@ -68,6 +98,7 @@ class PDFService:
             )
 
         pages: List[Dict[str, Any]] = []
+        missing: List[int] = []
         for idx in range(page_count):
             try:
                 text = reader.pages[idx].extract_text() or ""
@@ -76,6 +107,14 @@ class PDFService:
             text = _normalise_page_text(text)
             if text:
                 pages.append({"page": idx + 1, "text": text})
+            else:
+                missing.append(idx + 1)
+
+        for n, text in _ocr_pages(file_bytes, missing).items():
+            text = _normalise_page_text(text)
+            if text:
+                pages.append({"page": n, "text": text})
+        pages.sort(key=lambda p: p["page"])
 
         if not pages:
             raise AppException(ErrorCode.PDF_NO_TEXT, details={"pageCount": page_count})

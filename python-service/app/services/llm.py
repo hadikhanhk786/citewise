@@ -107,6 +107,9 @@ Your task is to answer the user's question using ONLY the provided sources.
 - For PDF sources: reference them as "According to \"<title>\" (page X)" when citing.
 - If the sources do not contain enough information, say exactly: "I don't have enough information in your sources to answer that."
 - Do NOT use prior knowledge. Do NOT speculate beyond the sources.
+- If the user asks for a chart, graph or plot, add ONE fenced code block with language `chart` containing only JSON:
+  {"type": "bar" | "line" | "pie", "title": "...", "data": [{"label": "...", "value": 12}]}
+  Use 2-12 data points with numeric values, then explain the chart in text. Never invent numbers.
 """
         else:
             system_prompt = """You are 'My Learning Copilot', an expert learning assistant.
@@ -120,6 +123,9 @@ Your task is to answer the user's question, preferring the provided sources but 
 - For PDF sources: reference them as "According to \"<title>\" (page X)" when citing.
 - If a topic isn't covered by the sources, clearly say so before supplementing with general knowledge.
 - Do not make up facts or invent source content.
+- If the user asks for a chart, graph or plot, add ONE fenced code block with language `chart` containing only JSON:
+  {"type": "bar" | "line" | "pie", "title": "...", "data": [{"label": "...", "value": 12}]}
+  Use 2-12 data points with numeric values, then explain the chart in text. Never invent numbers.
 """
 
         messages = [

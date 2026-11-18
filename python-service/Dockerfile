@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (needed for some python packages)
+# Install system dependencies (needed for some python packages), plus OCR for
+# scanned PDFs: pdftoppm (poppler) renders pages, tesseract reads them.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    build-essential poppler-utils tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

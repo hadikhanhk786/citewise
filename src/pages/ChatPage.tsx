@@ -1,16 +1,28 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, isValidElement } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
     Search, Plus, Send, Paperclip, ChevronDown, ChevronRight,
-    FileText, ToggleLeft, ToggleRight, MessageSquare, FileType, Hash, Filter, X
+    FileText, ToggleLeft, ToggleRight, MessageSquare, FileType, Hash, Filter, X, Download
 } from 'lucide-react';
 import { Badge, Button, Skeleton } from '../components/ui';
 import { useChatSessions, useChatMessages, useSendMessage, useCreateChatSession, usePdfSources } from '../hooks/useApi';
 import type { Citation } from '../lib/mock-data';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../lib/errors';
+import { ChatChart } from '../components/ChatChart';
+import { printAnswer } from '../lib/printAnswer';
 import './ChatPage.css';
+
+// Answers may contain a ```chart block; draw it instead of showing the JSON.
+const markdownComponents = {
+    pre: ({ children, ...props }: React.ComponentProps<'pre'>) => {
+        if (isValidElement<{ className?: string; children?: React.ReactNode }>(children) && children.props.className === 'language-chart') {
+            return <ChatChart source={String(children.props.children)} />;
+        }
+        return <pre {...props}>{children}</pre>;
+    },
+};
 
 export const ChatPage: React.FC = () => {
     const [selectedSession, setSelectedSession] = useState<string | null>(null);
@@ -26,6 +38,7 @@ export const ChatPage: React.FC = () => {
     const [pendingText, setPendingText] = useState<string | null>(null);
     const [waitSeconds, setWaitSeconds] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const answerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const sourcePickerRef = useRef<HTMLDivElement>(null);
 
     const toast = useToast();
@@ -263,15 +276,15 @@ export const ChatPage: React.FC = () => {
                             <Skeleton count={3} height="80px" />
                         </div>
                     ) : (
-                        (messages.data || []).map(msg => (
+                        (messages.data || []).map((msg, i, all) => (
                             <div key={msg.id} className={`message message-${msg.role}`}>
                                 <div className="message-avatar">
                                     {msg.role === 'user' ? 'AK' : 'AI'}
                                 </div>
                                 <div className="message-body">
-                                    <div className="message-content">
+                                    <div className="message-content" ref={el => { answerRefs.current[msg.id] = el; }}>
                                         {msg.role === 'assistant' ? (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                                                 {msg.content}
                                             </ReactMarkdown>
                                         ) : (
@@ -279,6 +292,20 @@ export const ChatPage: React.FC = () => {
                                         )}
                                     </div>
                                     <span className="message-time">{msg.timestamp}</span>
+                                    {msg.role === 'assistant' && (
+                                        <button
+                                            className="citations-toggle"
+                                            onClick={() => {
+                                                const el = answerRefs.current[msg.id];
+                                                const question = all[i - 1]?.role === 'user' ? all[i - 1].content : undefined;
+                                                if (el && !printAnswer(question, el, msg.citations || [])) {
+                                                    toast.addToast('Allow pop-ups to download the PDF', 'error');
+                                                }
+                                            }}
+                                        >
+                                            <Download size={14} /> PDF
+                                        </button>
+                                    )}
                                     {msg.citations && msg.citations.length > 0 && (
                                         <button
                                             className="citations-toggle"

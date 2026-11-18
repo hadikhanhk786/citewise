@@ -22,6 +22,9 @@ class Settings:
     GROUNDED_TEMPERATURE = float(os.getenv("GROUNDED_TEMPERATURE", 0.1))
     SUMMARY_MAX_CHUNKS = int(os.getenv("SUMMARY_MAX_CHUNKS", 10))
     MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", 2000))
+    # Scanned pages are OCR'd on CPU (a few seconds each); cap the work per upload.
+    MAX_OCR_PAGES = int(os.getenv("MAX_OCR_PAGES", 30))
+    OCR_LANGS = os.getenv("OCR_LANGS", "eng")
     # Defence in depth: the Node API enforces its own (usually lower) limit.
     MAX_PDF_BYTES = int(os.getenv("MAX_PDF_BYTES", 50 * 1024 * 1024))
 
