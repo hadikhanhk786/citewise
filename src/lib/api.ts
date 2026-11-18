@@ -1,6 +1,6 @@
 import { apiClient } from './axios';
 import {
-  type YouTubeSource, type NoteSource, type PdfSource, type ChatSession, type ChatMessage,
+  type NoteSource, type PdfSource, type ChatSession, type ChatMessage,
   type AdminUser, type ApiKey, type DashboardKPI, type ActivityItem,
 } from './mock-data';
 
@@ -39,30 +39,6 @@ export const fetchDashboard = async (): Promise<DashboardData> => {
 };
 
 /* ===== Sources ===== */
-export const fetchYouTubeSources = async (): Promise<YouTubeSource[]> => {
-  const workspaceId = localStorage.getItem('workspaceId');
-  const { data } = await apiClient.get(`/sources?workspaceId=${workspaceId}`);
-  // Map backend Source to YouTubeSource
-  return data.filter((s: any) => s.type === 'YOUTUBE').map((s: any) => {
-    const isReady = s.status === 'READY';
-    return {
-      id: s.id,
-      title: s.title,
-      url: s.youtubeVideo?.videoUrl || s.title,
-      addedAt: s.createdAt.split('T')[0],
-      status: s.status.toLowerCase(),
-      pipeline: {
-        loaded: true,
-        chunked: isReady,
-        embedded: isReady,
-        indexed: isReady,
-      },
-      errorReason: s.errorReason ?? undefined,
-      errorCode: s.errorCode ?? undefined,
-    };
-  });
-};
-
 export const fetchPdfSources = async (): Promise<PdfSource[]> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const { data } = await apiClient.get(`/sources?workspaceId=${workspaceId}`);
@@ -103,15 +79,6 @@ export const fetchNoteSources = async (): Promise<NoteSource[]> => {
   }));
 };
 
-export const ingestYouTube = async (url: string): Promise<any> => {
-  const workspaceId = localStorage.getItem('workspaceId');
-  const { data } = await apiClient.post('/sources/youtube', { 
-      workspaceId,
-      url 
-  });
-  return data;
-};
-
 export const uploadNotes = async (file: File): Promise<any> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const formData = new FormData();
@@ -132,40 +99,6 @@ export const syncNotes = async (): Promise<{ synced: number }> => {
 export const deleteSource = async (id: string): Promise<void> => {
   const workspaceId = localStorage.getItem('workspaceId');
   await apiClient.delete(`/sources/${id}?workspaceId=${workspaceId}`);
-};
-
-export const reindexSource = async (id: string): Promise<void> => {
-  const workspaceId = localStorage.getItem('workspaceId');
-  await apiClient.post(`/sources/${id}/reindex?workspaceId=${workspaceId}`);
-};
-
-export interface VideoSnapshot {
-  timestamp: number;
-  timestampDisplay: string;
-  label: string;
-  spriteUrl: string;
-  frameWidth: number;
-  frameHeight: number;
-  x: number;
-  y: number;
-}
-
-export interface SummaryResult {
-  videoId: string;
-  title: string | null;
-  cached: boolean;
-  summary: {
-    overview: string;
-    keyPoints: string[];
-    chapters?: { title: string; timestampStart: string; timestampEnd: string; summary: string }[];
-  };
-  snapshots?: VideoSnapshot[];
-}
-
-export const summarizeSource = async (id: string): Promise<SummaryResult> => {
-  const workspaceId = localStorage.getItem('workspaceId');
-  const { data } = await apiClient.post(`/sources/${id}/summarize?workspaceId=${workspaceId}`);
-  return data;
 };
 
 /* ===== Chat ===== */
@@ -197,15 +130,12 @@ export const createChatSession = async (title: string = 'New Chat'): Promise<Cha
 };
 
 const mapCitation = (c: any) => {
-  let type: 'youtube' | 'pdf' | 'note';
-  if (c.sourceType === 'YOUTUBE') type = 'youtube';
-  else if (c.sourceType === 'PDF') type = 'pdf';
+  let type: 'pdf' | 'note';
+  if (c.sourceType === 'PDF') type = 'pdf';
   else type = 'note';
   return {
     type,
     title: c.title,
-    startTime: c.timestampStart,
-    endTime: c.timestampEnd,
     page: c.page,
     heading: c.heading,
     chunkText: c.snippet,

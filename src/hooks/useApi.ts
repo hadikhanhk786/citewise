@@ -17,12 +17,6 @@ export const useDashboard = () =>
   });
 
 /* Sources */
-export const useYouTubeSources = () =>
-  useQuery({
-    queryKey: ['sources', 'youtube'],
-    queryFn: api.fetchYouTubeSources,
-  });
-
 export const useNoteSources = () =>
   useQuery({
     queryKey: ['sources', 'notes'],
@@ -40,14 +34,6 @@ export const useUploadPdf = () => {
   return useMutation({
     mutationFn: (file: File) => api.uploadPdf(file),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sources', 'pdf'] }),
-  });
-};
-
-export const useIngestYouTube = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (url: string) => api.ingestYouTube(url),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sources', 'youtube'] }),
   });
 };
 
@@ -76,19 +62,6 @@ export const useDeleteSource = () => {
     },
   });
 };
-
-export const useReindexSource = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.reindexSource(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sources'] }),
-  });
-};
-
-export const useSummarizeSource = () =>
-  useMutation({
-    mutationFn: (id: string) => api.summarizeSource(id),
-  });
 
 /* Chat */
 export const useChatSessions = () =>

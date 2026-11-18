@@ -1,15 +1,4 @@
 /* ===== Types ===== */
-export interface YouTubeSource {
-  id: string;
-  title: string;
-  url: string;
-  addedAt: string;
-  status: 'indexing' | 'ready' | 'error';
-  pipeline: { loaded: boolean; chunked: boolean; embedded: boolean; indexed: boolean };
-  errorReason?: string;
-  errorCode?: string;
-}
-
 export interface NoteSource {
   id: string;
   title: string;
@@ -44,16 +33,12 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   citations?: Citation[];
-  mode?: 'youtube' | 'notes' | 'hybrid';
+  mode?: 'pdf' | 'notes' | 'hybrid';
 }
 
 export interface Citation {
-  type: 'youtube' | 'pdf' | 'note';
+  type: 'pdf' | 'note';
   title: string;
-  // YouTube
-  startTime?: string;
-  endTime?: string;
-  videoUrl?: string;
   // PDF
   page?: number;
   // Notes
@@ -94,14 +79,6 @@ export interface ApiKey {
 }
 
 /* ===== Mock Data ===== */
-export const mockYouTubeSources: YouTubeSource[] = [
-  { id: '1', title: 'Intro to Transformers — 3Blue1Brown', url: 'https://youtube.com/watch?v=abc123', addedAt: '2026-02-14', status: 'ready', pipeline: { loaded: true, chunked: true, embedded: true, indexed: true } },
-  { id: '2', title: 'RAG Architecture Deep Dive', url: 'https://youtube.com/watch?v=def456', addedAt: '2026-02-15', status: 'indexing', pipeline: { loaded: true, chunked: true, embedded: false, indexed: false } },
-  { id: '3', title: 'Vector Databases Explained', url: 'https://youtube.com/watch?v=ghi789', addedAt: '2026-02-16', status: 'error', pipeline: { loaded: true, chunked: false, embedded: false, indexed: false } },
-  { id: '4', title: 'Fine-tuning LLMs for Enterprise', url: 'https://youtube.com/watch?v=jkl012', addedAt: '2026-02-13', status: 'ready', pipeline: { loaded: true, chunked: true, embedded: true, indexed: true } },
-  { id: '5', title: 'Prompt Engineering Masterclass', url: 'https://youtube.com/watch?v=mno345', addedAt: '2026-02-12', status: 'ready', pipeline: { loaded: true, chunked: true, embedded: true, indexed: true } },
-];
-
 export const mockNoteSources: NoteSource[] = [
   { id: 'n1', title: 'ML System Design Notes', folder: 'Engineering', tag: 'ML', updatedAt: '2026-02-15', status: 'synced' },
   { id: 'n2', title: 'Product Requirements — Q1', folder: 'Product', tag: 'PRD', updatedAt: '2026-02-14', status: 'synced' },
@@ -122,7 +99,7 @@ export const mockChatMessages: ChatMessage[] = [
     id: 'm2', role: 'assistant', content: 'Transformers handle long-range dependencies through the **self-attention mechanism**, which allows each token in a sequence to attend to every other token directly, regardless of distance.\n\nUnlike RNNs that process sequences step-by-step (making distant relationships hard to capture), self-attention computes relationships in parallel across all positions.\n\nThe key insight is the **Query-Key-Value** framework: each token generates Q, K, and V vectors. Attention scores are computed as dot products between queries and keys, then normalized via softmax to create weighted combinations of values.',
     timestamp: '10:31 AM',
     citations: [
-      { type: 'youtube', title: 'Intro to Transformers — 3Blue1Brown', startTime: '03:12', endTime: '04:05', videoUrl: 'https://youtube.com/watch?v=abc123', chunkText: 'The self-attention mechanism allows each word to look at every other word in the sentence, computing a relevance score...' },
+      { type: 'pdf', title: 'Intro to Transformers.pdf', page: 3, chunkText: 'The self-attention mechanism allows each word to look at every other word in the sentence, computing a relevance score...' },
       { type: 'note', title: 'ML System Design Notes', heading: 'Transformer Architecture', updatedAt: '2026-02-15', chunkText: 'Self-attention computes pairwise interactions between all positions in O(n²) time complexity, enabling direct long-range dependency modeling.' },
     ],
   },
@@ -131,7 +108,7 @@ export const mockChatMessages: ChatMessage[] = [
     id: 'm4', role: 'assistant', content: 'The main trade-off is the **O(n²) computational complexity** of self-attention, where n is the sequence length. This makes transformers memory-intensive for very long sequences.\n\nSeveral approaches address this:\n- **Sparse attention** (e.g., Longformer) reduces to O(n·k)\n- **Linear attention** approximates softmax with kernel methods\n- **Flash Attention** optimizes GPU memory access patterns\n- **Sliding window approaches** limit attention to local neighborhoods',
     timestamp: '10:34 AM',
     citations: [
-      { type: 'youtube', title: 'RAG Architecture Deep Dive', startTime: '15:20', endTime: '17:45', videoUrl: 'https://youtube.com/watch?v=def456', chunkText: 'The quadratic complexity of attention means processing a 4K token sequence requires 16M attention computations...' },
+      { type: 'pdf', title: 'RAG Architecture.pdf', page: 15, chunkText: 'The quadratic complexity of attention means processing a 4K token sequence requires 16M attention computations...' },
     ],
   },
 ];

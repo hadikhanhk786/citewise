@@ -3,7 +3,7 @@
 ## YouTube removal
 - [x] python-service: ingest/summarize endpoints, services, tests, youtube-transcript-api
 - [x] server: youtube/summarize/reindex routes, controller, service, schemas, YT_ error codes, chat mode (reindex was YouTube-only)
-- [ ] UI: pages, buttons, source-type options, API calls (src/) incl. now-dead /sources/:id/reindex and /summarize calls
+- [x] UI: pages, buttons, source-type options, API calls (src/) incl. dead reindex/summarize calls
 - [ ] README/docs/testing checklist/fixtures mentions
 - [ ] python-service leftovers: `YOUTUBE` mode in rag.py/schemas, YT_* error codes, llm.py YouTube prompt text, `VideoSummary` model
 - [ ] Owner: Prisma schema cleanup (youtube source type/enum, video summary columns) + migration

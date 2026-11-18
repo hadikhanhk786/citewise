@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Youtube, FileText, Zap, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, FileText, Zap, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { PageHeader } from '../components/layout';
 import { Badge, DataTable, SkeletonCard } from '../components/ui';
@@ -62,14 +62,6 @@ export const DashboardPage: React.FC = () => {
             {/* Quick Actions */}
             <div className="section-title">Quick Actions</div>
             <div className="quick-actions">
-                <button className="action-card">
-                    <div className="action-icon action-icon-red"><Youtube size={20} /></div>
-                    <div className="action-text">
-                        <span className="action-label">Add YouTube Source</span>
-                        <span className="action-desc">Index a video transcript</span>
-                    </div>
-                    <ArrowRight size={16} className="action-arrow" />
-                </button>
                 <button className="action-card">
                     <div className="action-icon action-icon-blue"><FileText size={20} /></div>
                     <div className="action-text">

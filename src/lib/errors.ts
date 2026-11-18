@@ -17,14 +17,6 @@ export interface ApiError {
 // friendly messages, but we keep this map so that network failures and
 // unknown codes still render something useful.
 const FALLBACK: Record<string, { message: string; hint?: string }> = {
-  YT_INVALID_URL: {
-    message: "That doesn't look like a valid YouTube link.",
-    hint: 'Please paste a full YouTube URL.',
-  },
-  YT_TRANSCRIPT_UNAVAILABLE: {
-    message: "We couldn't get subtitles for this video.",
-    hint: 'Try another video with captions enabled.',
-  },
   PDF_UNSUPPORTED_TYPE: {
     message: 'Only PDF files are supported here.',
     hint: 'Upload a file ending in .pdf.',
