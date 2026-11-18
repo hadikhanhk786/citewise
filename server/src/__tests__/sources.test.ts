@@ -16,7 +16,6 @@ jest.mock('../lib/prisma', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
-    youTubeVideo: { upsert: jest.fn() },
     notesCollection: { upsert: jest.fn() },
     pdfDocument: { upsert: jest.fn() },
     workspaceMember: { findUnique: jest.fn() },
@@ -57,99 +56,6 @@ function mockAuthAndWorkspace() {
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────
-
-describe('POST /api/sources/youtube', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockAuthAndWorkspace();
-  });
-
-  it('should create a source with INDEXING status and return 201', async () => {
-    const mockSource = {
-      id: SOURCE_ID,
-      workspaceId: WORKSPACE_ID,
-      type: 'YOUTUBE',
-      title: 'https://www.youtube.com/watch?v=abc123',
-      status: 'INDEXING',
-      createdAt: new Date().toISOString(),
-    };
-
-    (prisma.source.create as jest.Mock).mockResolvedValue(mockSource);
-    // Fire-and-forget ingestion — mock the Python call
-    (aiClient.post as jest.Mock).mockResolvedValue({
-      data: { videoId: 'abc123', title: 'Test Video', chunksIndexed: 5 },
-    });
-
-    const res = await authed(
-      request(app)
-        .post('/api/sources/youtube')
-        .send({ workspaceId: WORKSPACE_ID, url: 'https://www.youtube.com/watch?v=abc123' })
-    );
-
-    expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({
-      id: SOURCE_ID,
-      type: 'YOUTUBE',
-      status: 'INDEXING',
-    });
-    expect(prisma.source.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          workspaceId: WORKSPACE_ID,
-          type: 'YOUTUBE',
-          status: 'INDEXING',
-        }),
-      })
-    );
-  });
-
-  it('should return 422 for invalid URL', async () => {
-    const res = await authed(
-      request(app)
-        .post('/api/sources/youtube')
-        .send({ workspaceId: WORKSPACE_ID, url: 'not-a-valid-url' })
-    );
-
-    expect(res.status).toBe(422);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
-  });
-
-  it('should return 422 for missing workspaceId', async () => {
-    const res = await authed(
-      request(app)
-        .post('/api/sources/youtube')
-        .send({ url: 'https://www.youtube.com/watch?v=abc123' })
-    );
-
-    // Either 422 (Zod) or 400 (workspace middleware) depending on middleware order
-    expect([400, 422]).toContain(res.status);
-  });
-
-  it('should return 401 without auth token', async () => {
-    const res = await request(app)
-      .post('/api/sources/youtube')
-      .send({ workspaceId: WORKSPACE_ID, url: 'https://www.youtube.com/watch?v=abc123' });
-
-    expect(res.status).toBe(401);
-  });
-
-  it('should return 403 when user is not workspace member', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
-      id: 'user-1',
-      email: 'test@example.com',
-      role: 'MEMBER',
-    });
-    (prisma.workspaceMember.findUnique as jest.Mock).mockResolvedValue(null);
-
-    const res = await authed(
-      request(app)
-        .post('/api/sources/youtube')
-        .send({ workspaceId: WORKSPACE_ID, url: 'https://www.youtube.com/watch?v=abc123' })
-    );
-
-    expect(res.status).toBe(403);
-  });
-});
 
 describe('POST /api/sources/notes/upload', () => {
   beforeEach(() => {
@@ -289,10 +195,9 @@ describe('GET /api/sources', () => {
       {
         id: SOURCE_ID,
         workspaceId: WORKSPACE_ID,
-        type: 'YOUTUBE',
-        title: 'Test Video',
+        type: 'PDF',
+        title: 'Test.pdf',
         status: 'READY',
-        youtubeVideo: { videoId: 'abc123' },
         notesCollection: null,
         _count: { documents: 0 },
       },
@@ -307,7 +212,7 @@ describe('GET /api/sources', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body).toHaveLength(1);
-    expect(res.body[0].type).toBe('YOUTUBE');
+    expect(res.body[0].type).toBe('PDF');
   });
 
   it('should return 422 for missing workspaceId query param', async () => {

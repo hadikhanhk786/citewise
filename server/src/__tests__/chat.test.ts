@@ -172,7 +172,7 @@ describe('POST /api/chat/sessions/:id/messages', () => {
       content: 'RAG stands for Retrieval Augmented Generation.',
       citations: [
         {
-          sourceType: 'YOUTUBE',
+          sourceType: 'PDF',
           title: 'RAG Tutorial',
           sourceId: 'abc123',
           docId: 'abc123',
@@ -196,7 +196,7 @@ describe('POST /api/chat/sessions/:id/messages', () => {
         answer: 'RAG stands for Retrieval Augmented Generation.',
         citations: [
           {
-            sourceType: 'YOUTUBE',
+            sourceType: 'PDF',
             title: 'RAG Tutorial',
             sourceId: 'abc123',
             docId: 'abc123',
@@ -220,7 +220,7 @@ describe('POST /api/chat/sessions/:id/messages', () => {
     expect(res.body.userMessage.sender).toBe('USER');
     expect(res.body.assistantMessage.sender).toBe('ASSISTANT');
     expect(res.body.assistantMessage.citations).toHaveLength(1);
-    expect(res.body.assistantMessage.citations[0].sourceType).toBe('YOUTUBE');
+    expect(res.body.assistantMessage.citations[0].sourceType).toBe('PDF');
 
     // Verify Python service was called with correct payload
     expect(aiClient.post).toHaveBeenCalledWith('/rag/chat', {

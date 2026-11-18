@@ -3,11 +3,6 @@
  * Keep in sync with python-service/app/errors.py and src/lib/error-messages.ts.
  */
 export const ERROR_CODES = {
-  // YouTube
-  YT_INVALID_URL: 'YT_INVALID_URL',
-  YT_TRANSCRIPT_UNAVAILABLE: 'YT_TRANSCRIPT_UNAVAILABLE',
-  YT_VIDEO_NOT_FOUND: 'YT_VIDEO_NOT_FOUND',
-
   // PDF
   PDF_UNSUPPORTED_TYPE: 'PDF_UNSUPPORTED_TYPE',
   PDF_EMPTY_FILE: 'PDF_EMPTY_FILE',
@@ -37,21 +32,6 @@ export type ErrorCode = keyof typeof ERROR_CODES;
 type Friendly = { message: string; hint?: string; status: number };
 
 export const ERROR_MESSAGES: Record<string, Friendly> = {
-  YT_INVALID_URL: {
-    message: "That doesn't look like a valid YouTube link.",
-    hint: 'Please paste a full YouTube URL.',
-    status: 400,
-  },
-  YT_TRANSCRIPT_UNAVAILABLE: {
-    message: "We couldn't get subtitles for this video.",
-    hint: 'Try another video with captions enabled.',
-    status: 422,
-  },
-  YT_VIDEO_NOT_FOUND: {
-    message: "We couldn't find that video.",
-    hint: 'Check the link is public and try again.',
-    status: 404,
-  },
   PDF_UNSUPPORTED_TYPE: {
     message: 'Only PDF files are supported here.',
     hint: 'Upload a file ending in .pdf.',

@@ -4,16 +4,6 @@ import { AppError } from '../../middleware/error-handler';
 import { ERROR_CODES } from '../../lib/error-codes';
 
 export const sourcesController = {
-  addYoutube: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { workspaceId, url } = req.body;
-      const source = await sourcesService.addYoutubeSource(workspaceId, url);
-      res.status(201).json(source);
-    } catch (error) {
-      next(error);
-    }
-  },
-
   uploadPdf: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const workspaceId = req.body.workspaceId || req.query.workspaceId;
@@ -69,28 +59,6 @@ export const sourcesController = {
       const workspaceId = req.query['workspaceId'] as string;
       await sourcesService.deleteSource(id, workspaceId);
       res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  reindex: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = req.params['id'] as string;
-      const workspaceId = req.query['workspaceId'] as string;
-      const result = await sourcesService.reindexSource(id, workspaceId);
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  summarize: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = req.params['id'] as string;
-      const workspaceId = req.query['workspaceId'] as string;
-      const result = await sourcesService.summarizeYouTubeSource(id, workspaceId);
-      res.json(result);
     } catch (error) {
       next(error);
     }

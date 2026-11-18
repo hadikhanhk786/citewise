@@ -6,7 +6,7 @@ import { logError } from '../services/errorLog.service';
 import { env } from '../config/env';
 
 // Local until Prisma generate picks up the new enum.
-type ErrorSourceType = 'PDF' | 'YOUTUBE' | 'NOTES' | 'CHAT' | 'SYSTEM';
+type ErrorSourceType = 'PDF' | 'NOTES' | 'CHAT' | 'SYSTEM';
 
 export class AppError extends Error {
   statusCode: number;
@@ -58,7 +58,6 @@ export class AppError extends Error {
 }
 
 function inferSourceType(endpoint: string): ErrorSourceType {
-  if (endpoint.includes('/sources/youtube')) return 'YOUTUBE';
   if (endpoint.includes('/sources/pdf')) return 'PDF';
   if (endpoint.includes('/sources/notes')) return 'NOTES';
   if (endpoint.includes('/chat')) return 'CHAT';

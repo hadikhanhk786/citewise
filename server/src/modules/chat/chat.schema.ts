@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const CHAT_MODES = ['HYBRID', 'YOUTUBE', 'PDF', 'NOTES'] as const;
+const CHAT_MODES = ['HYBRID', 'PDF', 'NOTES'] as const;
 
 export const createSessionSchema = z.object({
   body: z.object({

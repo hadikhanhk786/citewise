@@ -1,12 +1,5 @@
 import { z } from 'zod';
 
-export const createYoutubeSourceSchema = z.object({
-  body: z.object({
-    workspaceId: z.string().uuid(),
-    url: z.string().url(),
-  }),
-});
-
 // For multipart uploads, workspaceId may arrive in either body or query.
 // At least one must be present and a valid UUID.
 const workspaceIdInBodyOrQuery = z
@@ -34,25 +27,7 @@ export const deleteSourceSchema = z.object({
   }),
 });
 
-export const reindexSourceSchema = z.object({
-  params: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.object({
-    workspaceId: z.string().uuid(),
-  }),
-});
-
 export const syncNotesSchema = z.object({
-  query: z.object({
-    workspaceId: z.string().uuid(),
-  }),
-});
-
-export const summarizeSourceSchema = z.object({
-  params: z.object({
-    id: z.string().uuid(),
-  }),
   query: z.object({
     workspaceId: z.string().uuid(),
   }),

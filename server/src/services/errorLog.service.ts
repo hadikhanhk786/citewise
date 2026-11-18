@@ -3,7 +3,7 @@ import { logger } from '../lib/logger';
 import { env } from '../config/env';
 
 // Local type until Prisma client regen exposes the ErrorSourceType enum.
-type ErrorSourceType = 'PDF' | 'YOUTUBE' | 'NOTES' | 'CHAT' | 'SYSTEM';
+type ErrorSourceType = 'PDF' | 'NOTES' | 'CHAT' | 'SYSTEM';
 
 interface LogErrorArgs {
   workspaceId?: string | null;
