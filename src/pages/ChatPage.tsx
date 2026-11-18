@@ -11,14 +11,20 @@ import type { Citation } from '../lib/mock-data';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../lib/errors';
 import { ChatChart } from '../components/ChatChart';
+import { parseChartSpec } from '../lib/chartSpec';
 import { printAnswer } from '../lib/printAnswer';
 import './ChatPage.css';
 
-// Answers may contain a ```chart block; draw it instead of showing the JSON.
+// Answers may contain a ```chart block (models sometimes label it ```json);
+// draw it instead of showing the JSON.
 const markdownComponents = {
     pre: ({ children, ...props }: React.ComponentProps<'pre'>) => {
-        if (isValidElement<{ className?: string; children?: React.ReactNode }>(children) && children.props.className === 'language-chart') {
-            return <ChatChart source={String(children.props.children)} />;
+        if (isValidElement<{ className?: string; children?: React.ReactNode }>(children)) {
+            const lang = children.props.className;
+            const source = String(children.props.children);
+            if (lang === 'language-chart' || (lang === 'language-json' && parseChartSpec(source))) {
+                return <ChatChart source={source} />;
+            }
         }
         return <pre {...props}>{children}</pre>;
     },

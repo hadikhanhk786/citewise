@@ -3,13 +3,7 @@ import {
     ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
     CartesianGrid, XAxis, YAxis, Tooltip,
 } from 'recharts';
-
-// Shape the chat model is asked to emit in a ```chart block (see python-service llm.py).
-interface ChartSpec {
-    type: 'bar' | 'line' | 'pie';
-    title?: string;
-    data: { label: string; value: number }[];
-}
+import { parseChartSpec } from '../lib/chartSpec';
 
 const PIE_COLORS = ['var(--color-accent)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-info)', '#a78bfa', '#f472b6'];
 
@@ -19,24 +13,9 @@ const tooltipStyle = {
     itemStyle: { color: 'var(--color-text-primary)' },
 };
 
-function parseSpec(source: string): ChartSpec | null {
-    try {
-        const spec = JSON.parse(source);
-        const data = Array.isArray(spec?.data)
-            ? spec.data
-                .map((d: { label?: unknown; value?: unknown }) => ({ label: String(d.label ?? ''), value: Number(d.value) }))
-                .filter((d: { value: number }) => Number.isFinite(d.value))
-            : [];
-        if (!['bar', 'line', 'pie'].includes(spec?.type) || data.length === 0) return null;
-        return { type: spec.type, title: typeof spec.title === 'string' ? spec.title : undefined, data };
-    } catch {
-        return null;
-    }
-}
-
 /** Renders a ```chart block from an answer; falls back to the raw text if the JSON is malformed. */
 export const ChatChart: React.FC<{ source: string }> = ({ source }) => {
-    const spec = parseSpec(source);
+    const spec = parseChartSpec(source);
     if (!spec) return <pre><code>{source}</code></pre>;
 
     return (
