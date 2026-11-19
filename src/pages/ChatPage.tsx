@@ -9,6 +9,7 @@ import { Badge, Button, Skeleton } from '../components/ui';
 import { useChatSessions, useChatMessages, useSendMessage, useCreateChatSession, usePdfSources } from '../hooks/useApi';
 import type { Citation } from '../lib/mock-data';
 import { useToast } from '../components/ui/Toast';
+import { useAuth } from '../context/AuthContext';
 import { parseApiError } from '../lib/errors';
 import { ChatChart } from '../components/ChatChart';
 import { parseChartSpec } from '../lib/chartSpec';
@@ -42,12 +43,15 @@ export const ChatPage: React.FC = () => {
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
     const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
     const [pendingText, setPendingText] = useState<string | null>(null);
+    const [showSessions, setShowSessions] = useState(false); // mobile: chat list overlay
     const [waitSeconds, setWaitSeconds] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const answerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const sourcePickerRef = useRef<HTMLDivElement>(null);
 
     const toast = useToast();
+    const { user } = useAuth();
+    const userInitials = (user?.name || user?.email || '?').split(/[\s@]+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
     const sessions = useChatSessions();
     const messages = useChatMessages(selectedSession);
     const sendMutation = useSendMessage();
@@ -155,7 +159,7 @@ export const ChatPage: React.FC = () => {
     );
 
     return (
-        <div className="chat-page">
+        <div className={`chat-page ${showSessions ? 'chat-show-sessions' : ''} ${activeCitation ? 'chat-show-citation' : ''}`}>
             {/* Left: Sessions */}
             <div className="chat-sessions">
                 <div className="sessions-header">
@@ -186,7 +190,7 @@ export const ChatPage: React.FC = () => {
                             <button
                                 key={s.id}
                                 className={`session-item ${selectedSession === s.id ? 'session-active' : ''}`}
-                                onClick={() => { setSelectedSession(s.id); setActiveCitation(null); }}
+                                onClick={() => { setSelectedSession(s.id); setActiveCitation(null); setShowSessions(false); }}
                             >
                                 <span className="session-item-title">{s.title}</span>
                                 <span className="session-item-meta">{s.updatedAt} · {s.messageCount} msgs</span>
@@ -199,6 +203,9 @@ export const ChatPage: React.FC = () => {
             {/* Center: Thread */}
             <div className="chat-thread">
                 <div className="thread-header">
+                    <button className="mobile-only chats-toggle" onClick={() => setShowSessions(v => !v)} aria-label="Show chats">
+                        <MessageSquare size={14} /> Chats
+                    </button>
                     <div className="mode-selector">
                         {(['pdf', 'hybrid'] as const).map(m => (
                             <button
@@ -285,7 +292,7 @@ export const ChatPage: React.FC = () => {
                         (messages.data || []).map((msg, i, all) => (
                             <div key={msg.id} className={`message message-${msg.role}`}>
                                 <div className="message-avatar">
-                                    {msg.role === 'user' ? 'AK' : 'AI'}
+                                    {msg.role === 'user' ? userInitials : 'AI'}
                                 </div>
                                 <div className="message-body">
                                     <div className="message-content" ref={el => { answerRefs.current[msg.id] = el; }}>
@@ -349,7 +356,7 @@ export const ChatPage: React.FC = () => {
                     {pendingText !== null && (
                         <>
                             <div className="message message-user">
-                                <div className="message-avatar">AK</div>
+                                <div className="message-avatar">{userInitials}</div>
                                 <div className="message-body">
                                     <div className="message-content">{pendingText}</div>
                                 </div>
@@ -392,7 +399,14 @@ export const ChatPage: React.FC = () => {
 
             {/* Right: Citations Panel */}
             <div className="citations-panel">
-                <h3 className="panel-title">Citations & Preview</h3>
+                <h3 className="panel-title">
+                    Citations & Preview
+                    {activeCitation && (
+                        <button className="mobile-only citation-close" onClick={() => setActiveCitation(null)} aria-label="Close preview">
+                            <X size={16} />
+                        </button>
+                    )}
+                </h3>
                 {activeCitation ? (
                     <div className="citation-detail">
                         <div className="citation-detail-header">

@@ -3,9 +3,10 @@ import { NavLink } from 'react-router-dom';
 
 import {
     LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Shield,
-    Search, Plus, Bell, ChevronDown, Settings, LogOut, Activity
+    Search, Plus, Bell, ChevronDown, Settings, LogOut, Activity, Menu
 } from 'lucide-react';
 import { Badge } from '../ui';
+import { useAuth } from '../../context/AuthContext';
 import './AppShell.css';
 
 const navItems = [
@@ -23,6 +24,9 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'healthy' }) => {
     const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+    const [navOpen, setNavOpen] = React.useState(false); // mobile drawer
+    const { user, logout } = useAuth();
+    const initials = (user?.name || user?.email || '?').split(/[\s@]+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
 
     const healthVariant = healthStatus === 'healthy' ? 'success' : healthStatus === 'degraded' ? 'warning' : 'error';
     const healthLabel = healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1);
@@ -30,7 +34,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
     return (
         <div className="app-shell">
             {/* Sidebar */}
-            <aside className="sidebar" role="navigation" aria-label="Main navigation">
+            {navOpen && <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} />}
+            <aside className={`sidebar ${navOpen ? 'sidebar-open' : ''}`} role="navigation" aria-label="Main navigation">
                 <div className="sidebar-header">
                     <div className="workspace-switcher">
                         <div className="workspace-avatar">ML</div>
@@ -48,6 +53,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
                             key={item.to}
                             to={item.to}
                             className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}
+                            onClick={() => setNavOpen(false)}
                         >
                             <item.icon size={18} />
                             <span>{item.label}</span>
@@ -63,10 +69,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
                             aria-expanded={userMenuOpen}
                             aria-haspopup="true"
                         >
-                            <div className="user-avatar">AK</div>
+                            <div className="user-avatar">{initials}</div>
                             <div className="user-info">
-                                <span className="user-name">Alex Kim</span>
-                                <span className="user-email">alex@company.io</span>
+                                <span className="user-name">{user?.name}</span>
+                                <span className="user-email">{user?.email}</span>
                             </div>
                         </button>
                         {userMenuOpen && (
@@ -74,7 +80,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
                                 <button className="user-dropdown-item" role="menuitem">
                                     <Settings size={14} /> Settings
                                 </button>
-                                <button className="user-dropdown-item user-dropdown-danger" role="menuitem">
+                                <button className="user-dropdown-item user-dropdown-danger" role="menuitem" onClick={logout}>
                                     <LogOut size={14} /> Logout
                                 </button>
                             </div>
@@ -87,6 +93,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
             <div className="main-area">
                 {/* Topbar */}
                 <header className="topbar">
+                    <button className="topbar-icon-btn topbar-menu-btn" aria-label="Open menu" onClick={() => setNavOpen(true)}>
+                        <Menu size={20} />
+                    </button>
                     <div className="topbar-search">
                         <Search size={16} className="topbar-search-icon" />
                         <input
@@ -107,7 +116,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, healthStatus = 'he
                         </button>
                         <NavLink to="/sources" className="topbar-new-source">
                             <Plus size={16} />
-                            New Source
+                            <span className="topbar-new-source-label">New Source</span>
                         </NavLink>
                     </div>
                 </header>

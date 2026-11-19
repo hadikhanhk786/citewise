@@ -108,3 +108,7 @@
   .dashboard-grid { grid-template-columns: 1fr; }
   .quick-actions { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 600px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}

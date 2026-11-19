@@ -1,6 +1,7 @@
 .chat-page {
   display: grid;
   grid-template-columns: 260px 1fr 300px;
+  grid-template-rows: minmax(0, 1fr); /* let panes shrink so the input stays on screen */
   height: calc(100vh - var(--topbar-height));
   margin: calc(var(--space-8) * -1);
   animation: fadeIn var(--transition-normal);
@@ -97,6 +98,7 @@
 .chat-thread {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: var(--color-bg-primary);
 }
 
@@ -473,3 +475,35 @@
 
 .chat-chart { margin: var(--space-3) 0; }
 .chat-chart figcaption { font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-2); }
+
+/* ===== Mobile: one column; chat list and citation preview open as overlays ===== */
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .content-area:has(.chat-page) { padding: 0; overflow: hidden; }
+  .chat-page {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - var(--topbar-height));
+    margin: 0;
+    position: relative;
+  }
+  .mobile-only { display: inline-flex; }
+  .chats-toggle {
+    align-items: center; gap: 6px; padding: 6px 10px;
+    background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    color: var(--color-text-primary); font-size: var(--text-xs); font-family: var(--font-family); cursor: pointer;
+  }
+  .thread-header { flex-wrap: wrap; gap: var(--space-2); }
+  .message { max-width: 100%; }
+  .thread-messages { padding: var(--space-4); }
+  .chat-sessions, .citations-panel { display: none; }
+  .chat-show-sessions .chat-sessions {
+    display: flex; position: absolute; inset: 0 20% 0 0; z-index: 30; box-shadow: var(--shadow-lg);
+  }
+  .chat-show-citation .citations-panel {
+    display: block; position: absolute; left: 0; right: 0; bottom: 0; max-height: 60%; z-index: 30;
+    border-left: none; border-top: 1px solid var(--color-border); box-shadow: var(--shadow-lg);
+  }
+  .panel-title { display: flex; align-items: center; justify-content: space-between; }
+  .citation-close { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 4px; }
+}

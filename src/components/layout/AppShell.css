@@ -258,3 +258,20 @@
   padding: var(--space-8);
   overflow-y: auto;
 }
+
+/* ===== Mobile: sidebar becomes a slide-in drawer ===== */
+.topbar-menu-btn { display: none; }
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform var(--transition-normal); }
+  .sidebar-open { transform: none; box-shadow: var(--shadow-lg); }
+  .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 45; }
+  .main-area { margin-left: 0; }
+  .topbar { padding: 0 var(--space-3); gap: var(--space-2); }
+  .topbar-menu-btn { display: inline-flex; }
+  .topbar-search { display: none; }
+  .topbar-actions { gap: var(--space-2); margin-left: auto; }
+  .topbar-new-source { padding: 8px 10px; }
+  .topbar-new-source-label { display: none; }
+  .content-area { padding: var(--space-4); }
+}
