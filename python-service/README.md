@@ -4,7 +4,6 @@ Python FastAPI microservice providing RAG (Retrieval-Augmented Generation) capab
 
 ## Features
 
-- **YouTube Ingestion**: Fetches transcripts, chunks with timestamp preservation, embeds, and stores in pgvector
 - **Notes Ingestion**: Accepts markdown/text uploads, chunks by headings, embeds, and stores
 - **RAG Chat**: Retrieves relevant chunks via vector similarity, generates grounded answers with citations
 - **Multi-Provider**: Supports OpenAI and Google Gemini for embeddings and chat
@@ -14,7 +13,6 @@ Python FastAPI microservice providing RAG (Retrieval-Augmented Generation) capab
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Service health check |
-| POST | `/ingest/youtube` | Ingest YouTube video transcript |
 | POST | `/ingest/notes/upload` | Upload and ingest notes files |
 | POST | `/rag/chat` | RAG-powered chat with citations |
 
@@ -53,20 +51,6 @@ docker run -p 8000:8000 --env-file .env rag-service
 
 ## API Examples
 
-### Ingest YouTube
-```bash
-curl -X POST http://localhost:8000/ingest/youtube \
-  -H "Content-Type: application/json" \
-  -d '{"workspaceId": "uuid-here", "url": "https://youtu.be/dQw4w9WgXcQ"}'
-```
-**Response**:
-```json
-{
-  "videoId": "dQw4w9WgXcQ",
-  "chunksIndexed": 42
-}
-```
-
 ### RAG Chat
 ```bash
 curl -X POST http://localhost:8000/rag/chat \
@@ -85,7 +69,7 @@ curl -X POST http://localhost:8000/rag/chat \
   "answer": "The key topics discussed include AI agents and their reasoning capabilities.",
   "citations": [
     {
-      "sourceType": "YOUTUBE",
+      "sourceType": "PDF",
       "title": "Video dQw4w9WgXcQ",
       "sourceId": "dQw4w9WgXcQ",
       "docId": null,

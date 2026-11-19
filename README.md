@@ -1,8 +1,8 @@
 # Citewise
 
-**An AI reading assistant for your PDFs, YouTube videos, and notes. It answers only from your sources and cites the exact page each answer comes from.**
+**An AI reading assistant for your PDFs and notes. It answers only from your sources and cites the exact page each answer comes from.**
 
-Upload a PDF, paste a YouTube link, or sync your notes, then ask questions in plain language. Citewise uses retrieval-augmented generation (RAG) to find the relevant passages and generate an answer. It then **checks every citation against the retrieved text** before showing it to you. If the evidence isn't there, it says so instead of guessing.
+Upload a PDF or your notes, then ask questions in plain language. Citewise uses retrieval-augmented generation (RAG) to find the relevant passages and generate an answer. It then **checks every citation against the retrieved text** before showing it to you. If the evidence isn't there, it says so instead of guessing.
 
 ---
 
@@ -22,7 +22,6 @@ Most "chat with your PDF" tools let the language model write its own citations, 
 | Area | What it does |
 | --- | --- |
 | 📄 **PDF reader** | Upload PDFs and extract text page by page. Rejects encrypted, corrupt, empty, image-only, or non-PDF files with clear messages (checked by magic bytes, not just the file extension). |
-| 🎥 **YouTube ingestion** | Fetches transcripts, chunks them with timestamps kept, and lets you ask questions about the video or summarize it. |
 | 📝 **Notes ingestion** | Upload Markdown/text notes, chunked by heading. |
 | 💬 **Hybrid RAG chat** | Chat sessions with citations across all your sources, with modes and a `strictSources` option. |
 | ✅ **Grounded answers** | `/rag/answer` and `/rag/summarize-document` return verified, renumbered `[1]`, `[2]` citations with page and excerpt. |
@@ -65,7 +64,7 @@ question ─▶ embed ─▶ pgvector top-k ─▶ label chunks [C1..Cn] ─▶ 
 
 - **Frontend:** React 19, TypeScript, Vite, TanStack React Query, React Router 7, Recharts, react-markdown
 - **API:** Node.js, Express 5, TypeScript, Prisma, Zod, JWT, bcrypt, Multer, Pino, Helmet
-- **AI service:** Python 3.11, FastAPI, LangChain, pypdf, youtube-transcript-api, tiktoken, SQLAlchemy
+- **AI service:** Python 3.11, FastAPI, LangChain, pypdf, tiktoken, SQLAlchemy
 - **Data:** PostgreSQL 16 + pgvector
 - **Testing:** Jest + Supertest (Node), pytest (Python)
 - **Infra:** Docker / Docker Compose
@@ -82,9 +81,9 @@ question ─▶ embed ─▶ pgvector top-k ─▶ label chunks [C1..Cn] ─▶ 
 │   └── src/modules/     # auth, sources, chat, analytics, health
 ├── python-service/      # FastAPI RAG service
 │   ├── app/routers/     # ingest, rag, grounded, summarize, health
-│   ├── app/services/    # pdf, chunking, embedding, llm, grounded, youtube
+│   ├── app/services/    # pdf, chunking, embedding, llm, grounded
 │   └── tests/
-└── testing/             # shared fixtures + 47-case manual test checklist
+└── testing/             # shared fixtures + 35-case manual test checklist
 ```
 
 ---
@@ -142,7 +141,6 @@ npm run dev                     # http://localhost:5173
 | --- | --- | --- |
 | POST | `/api/auth/register` · `/api/auth/login` | Create account / get JWT |
 | POST | `/api/sources/pdf` | Upload and index a PDF |
-| POST | `/api/sources/youtube` | Ingest a YouTube video |
 | POST | `/api/sources/notes/upload` | Upload notes |
 | GET / DELETE | `/api/sources` · `/api/sources/:id` | List / delete sources |
 | POST | `/api/sources/:id/reindex` · `/:id/summarize` | Re-index / summarize a source |
@@ -154,7 +152,7 @@ npm run dev                     # http://localhost:5173
 | Method | Path | Description |
 | --- | --- | --- |
 | POST | `/ingest/pdf/extract` | Validate a PDF and extract text per page |
-| POST | `/ingest/pdf` · `/ingest/youtube` · `/ingest/notes/upload` | Chunk, embed, and store |
+| POST | `/ingest/pdf` · `/ingest/notes/upload` | Chunk, embed, and store |
 | POST | `/rag/chat` | Hybrid RAG chat |
 | POST | `/rag/answer` | Evidence-only answer with verified page citations |
 | POST | `/rag/summarize-document` | Grounded document summary |
@@ -187,7 +185,7 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-The Python suite covers PDF extraction edge cases (encrypted, corrupt, and image-only files), citation validation, the grounded-answer API, chunking, YouTube parsing, and ingestion. See [`testing/TEST_CHECKLIST.md`](testing/TEST_CHECKLIST.md) for the 47-case manual test plan.
+The Python suite covers PDF extraction edge cases (encrypted, corrupt, and image-only files), citation validation, the grounded-answer API, chunking, and ingestion. See [`testing/TEST_CHECKLIST.md`](testing/TEST_CHECKLIST.md) for the 35-case manual test plan.
 
 ---
 
@@ -207,7 +205,7 @@ All three services share one error envelope:
 }
 ```
 
-- Canonical codes live in `server/src/lib/error-codes.ts` and are mirrored in `python-service/app/errors.py`. Examples: `YT_INVALID_URL`, `YT_TRANSCRIPT_UNAVAILABLE`, `PDF_UNSUPPORTED_TYPE`, `PDF_EMPTY_FILE`, `EMBEDDING_FAILED`, `LLM_TIMEOUT`, `AI_SERVICE_DOWN`, `OLLAMA_UNAVAILABLE`, `DB_UNAVAILABLE`.
+- Canonical codes live in `server/src/lib/error-codes.ts` and are mirrored in `python-service/app/errors.py`. Examples: `PDF_UNSUPPORTED_TYPE`, `PDF_EMPTY_FILE`, `EMBEDDING_FAILED`, `LLM_TIMEOUT`, `AI_SERVICE_DOWN`, `OLLAMA_UNAVAILABLE`, `DB_UNAVAILABLE`.
 - Every request carries an `X-Request-ID` from the browser through Node to Python, so one ID traces a failure across all services.
 - Errors are saved to an `error_logs` table (workspace, source type, endpoint, code, hint, metadata; stack trace only outside production), indexed for per-workspace debugging.
 - The UI shows friendly messages with **Retry** actions on failed sources, and chat threads stay coherent even when the AI service fails.

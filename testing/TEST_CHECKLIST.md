@@ -13,24 +13,6 @@
 
 ---
 
-## 1. YouTube Ingestion
-
-| ID | Feature | Scenario | Input | Expected Result | Actual Result | Status |
-|----|---------|----------|-------|-----------------|---------------|--------|
-| YT-01 | YouTube happy path | Valid URL with transcript | `POST /api/sources/youtube` with `{ workspaceId, url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }` | Source created with status `INDEXING`, async ingestion updates to `READY` | | - |
-| YT-02 | YouTube happy path | Short URL form | `POST /api/sources/youtube` with `url: "https://youtu.be/dQw4w9WgXcQ"` | Same as YT-01 — video ID extracted correctly | | - |
-| YT-03 | Invalid YouTube URL | Malformed URL | `POST /api/sources/youtube` with `url: "not-a-url"` | 422 Validation Error (Zod rejects invalid URL) | | - |
-| YT-04 | Invalid YouTube URL | Non-YouTube URL | `POST /api/sources/youtube` with `url: "https://vimeo.com/12345"` | Python service returns 400 — invalid YouTube URL | | - |
-| YT-05 | Missing transcript | Video with disabled captions | Valid YouTube URL with captions disabled | Python returns 400: "Transcripts are disabled for this video" | | - |
-| YT-06 | Missing transcript | Video with no transcript available | Valid YouTube URL, no transcript | Python returns 400: "No transcript found for this video" | | - |
-| YT-07 | Unavailable video | Private / deleted video | YouTube URL for unavailable video | Python returns 400: "Video is unavailable" | | - |
-| YT-08 | Python service down | Network error during ingestion | Valid YouTube URL but Python service is offline | Source status set to `ERROR`, logged via aiClient retry logic | | - |
-| YT-09 | Reindex | Reindex existing YouTube source | `POST /api/sources/:id/reindex?workspaceId=...` | Source status reset to `INDEXING`, new ingestion triggered | | - |
-| YT-10 | Auth required | No Bearer token | `POST /api/sources/youtube` without Authorization header | 401 Unauthorized | | - |
-| YT-11 | Workspace guard | User not member of workspace | Valid token, workspaceId user is not a member of | 403 Forbidden | | - |
-
----
-
 ## 2. Notes Upload
 
 | ID | Feature | Scenario | Input | Expected Result | Actual Result | Status |
@@ -51,7 +33,6 @@
 | ID | Feature | Scenario | Input | Expected Result | Actual Result | Status |
 |----|---------|----------|-------|-----------------|---------------|--------|
 | CH-01 | Chat happy path | HYBRID mode with indexed sources | `POST /api/chat/sessions/:id/messages` with `{ content: "What is discussed?", mode: "HYBRID" }` | Returns `{ userMessage, assistantMessage }` with answer and citations | | - |
-| CH-02 | Chat happy path | YOUTUBE mode only | Same request with `mode: "YOUTUBE"` | Citations only from YOUTUBE source type | | - |
 | CH-03 | Chat happy path | NOTES mode only | Same request with `mode: "NOTES"` | Citations only from NOTES source type | | - |
 | CH-04 | Empty content | Empty message body | `content: ""` | 422 Validation Error (min 1 char) | | - |
 | CH-05 | Session not found | Invalid session ID | Non-existent UUID as session ID | 404 Session not found | | - |
@@ -67,9 +48,8 @@
 
 | ID | Feature | Scenario | Input | Expected Result | Actual Result | Status |
 |----|---------|----------|-------|-----------------|---------------|--------|
-| CT-01 | YouTube citation | Chat against YouTube source | Query about YouTube content | Citation includes `sourceType: "YOUTUBE"`, `timestampStart`, `timestampEnd`, `snippet` | | - |
 | CT-02 | Notes citation | Chat against Notes source | Query about notes content | Citation includes `sourceType: "NOTES"`, `title` (filename), `snippet` | | - |
-| CT-03 | Hybrid citations | Chat in HYBRID mode | Query matching both sources | Mix of YouTube and Notes citations returned | | - |
+| CT-03 | Hybrid citations | Chat in HYBRID mode | Query matching both sources | Mix of PDF and Notes citations returned | | - |
 | CT-04 | Citation structure | Schema validation | Any chat response with citations | Each citation has: `sourceType`, `title`, `sourceId`, `docId`, `snippet` | | - |
 
 ---
@@ -113,11 +93,10 @@
 
 | Category | Total | Pass | Fail | Skip | Not Run |
 |----------|-------|------|------|------|---------|
-| YouTube Ingestion | 11 | | | | 11 |
 | Notes Upload | 8 | | | | 8 |
 | Hybrid RAG Chat | 10 | | | | 10 |
 | Citation Correctness | 4 | | | | 4 |
 | strictSources | 3 | | | | 3 |
 | Health Endpoints | 5 | | | | 5 |
 | Infrastructure | 6 | | | | 6 |
-| **Total** | **47** | | | | **47** |
+| **Total** | **35** | | | | **35** |

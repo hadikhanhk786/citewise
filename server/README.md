@@ -55,9 +55,6 @@ Enterprise-grade Node.js backend for My Learning Copilot, handling authenticatio
 - `GET /api/me` - Get current user
 
 ### Sources
-- `POST /api/sources/youtube`
-  - **Request**: `{ "url": "https://youtu.be/dQw4w9WgXcQ" }`
-  - **Context**: Requires `Authorization: Bearer <token>` and `x-workspace-id: <uuid>`
 - `POST /api/sources/notes/upload` - Upload `.txt`/`.md`/`.pdf` notes (Multipart Form Data)
 - `GET /api/sources` - List sources
 

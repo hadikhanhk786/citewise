@@ -25,7 +25,7 @@ An AI-powered learning assistant with a React frontend, Node.js/Express backend,
 
 ### Backend (Node.js / Express)
 - [x] Auth module: register, login, JWT, `/me` endpoint
-- [x] Sources module: YouTube/Notes ingestion, list, delete
+- [x] Sources module: Notes/PDF ingestion (YouTube since removed), list, delete
 - [x] Chat module: sessions, messages, RAG integration
 - [x] Health check endpoint
 - [x] Global error handling (AppError class)
@@ -71,8 +71,6 @@ An AI-powered learning assistant with a React frontend, Node.js/Express backend,
 - [ ] Data retention policy endpoints (referenced in AdminPage)
 
 ### Python RAG Service
-- [ ] **YouTube title extraction** — currently returns `"Video {video_id}"` placeholder
-- [ ] Complete `test_youtube.py` test stubs (currently `pass`)
 - [ ] Fix CORS from `["*"]` to environment-specific origins
 - [ ] Better error handling for malformed requests
 
@@ -93,7 +91,6 @@ An AI-powered learning assistant with a React frontend, Node.js/Express backend,
 2. Wire frontend hooks to real API endpoints
 3. Enable RBAC + workspace middleware
 4. Add missing endpoints (reindex, sync notes)
-5. Fix YouTube title extraction
 6. Fix CORS for production
 7. Add migration files + seed data
 8. Expand test coverage
