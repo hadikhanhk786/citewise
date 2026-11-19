@@ -121,9 +121,11 @@ class TestCitationFormatting:
 class TestStrictSources:
     @patch("app.routers.rag.llm_service")
     @patch("app.routers.rag.embedding_service")
-    def test_strict_sources_no_chunks_returns_fallback(self, mock_embed, mock_llm, client):
-        """When strictSources=true and no chunks match, return canned response."""
+    def test_strict_sources_no_chunks_lets_the_model_answer(self, mock_embed, mock_llm, client):
+        """No matching chunks: the model still answers (greetings, "who are you?",
+        or its own "not enough information"), with no citations."""
         mock_embed.embed_query.return_value = [0.1] * 3072
+        mock_llm.generate_response = AsyncMock(return_value=("Hi! I'm Citewise.", []))
 
         # Override the DB dependency to return no chunks
         from app.db.session import get_db
@@ -147,8 +149,10 @@ class TestStrictSources:
 
             assert response.status_code == 200
             data = response.json()
-            assert "No relevant information" in data["answer"]
+            assert data["answer"] == "Hi! I'm Citewise."
             assert data["citations"] == []
+            args = mock_llm.generate_response.call_args.args
+            assert args[1] == [] and args[2] is True  # no chunks, strict flag passed on
         finally:
             app.dependency_overrides.clear()
 

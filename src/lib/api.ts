@@ -27,7 +27,9 @@ export interface InsightsData {
 export const fetchHealth = async (): Promise<{ status: 'healthy' | 'degraded' | 'down' }> => {
   const { data } = await apiClient.get('/health');
   // Map backend services status to overall status
-  if (data.services.python !== 'ok' && data.services.python !== 'ok (assumed)') return { status: 'degraded' };
+  // The API reports the RAG service as `ai` (older builds used `python`).
+  const ai = data.services.ai ?? data.services.python;
+  if (ai !== 'ok' && ai !== 'ok (assumed)') return { status: 'degraded' };
   return { status: 'healthy' };
 };
 

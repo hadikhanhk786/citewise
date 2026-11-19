@@ -45,9 +45,6 @@ class LLMService:
             raise ValueError("Unsupported Provider")
 
     async def generate_response(self, query: str, context_chunks: list[dict], strict_sources: bool) -> tuple[str, list[Citation]]:
-        if not context_chunks and strict_sources:
-             return "I couldn't find any relevant information in your sources to answer this question. Please try adding more sources or rephrasing.", []
-
         # Prepare context string with rich source metadata
         context_str = ""
         citations = []
@@ -96,9 +93,15 @@ class LLMService:
             ))
 
         if strict_sources:
-            system_prompt = """You are 'My Learning Copilot', an expert learning assistant.
+            system_prompt = """You are Citewise, a friendly study assistant. People upload PDFs and notes, and you answer
+questions about them with page citations, summaries, tables and charts.
 
-Your task is to answer the user's question using ONLY the provided sources.
+If the message is a greeting, small talk, thanks, or a question about you or what you can do
+(e.g. "hi", "who are you?", "what can you do?"), reply briefly and warmly in the user's language,
+say what you can help with, and suggest asking about their documents. Do not say you lack
+information for these, and do not cite sources for them.
+
+For questions about content, answer using ONLY the provided sources.
 
 **Response rules:**
 - Use markdown formatting: headers (##), bullet points, bold for key terms, code blocks where relevant.
@@ -112,9 +115,15 @@ Your task is to answer the user's question using ONLY the provided sources.
   Use 2-12 data points with numeric values, then explain the chart in text. Never invent numbers.
 """
         else:
-            system_prompt = """You are 'My Learning Copilot', an expert learning assistant.
+            system_prompt = """You are Citewise, a friendly study assistant. People upload PDFs and notes, and you answer
+questions about them with page citations, summaries, tables and charts.
 
-Your task is to answer the user's question, preferring the provided sources but using your knowledge to fill gaps.
+If the message is a greeting, small talk, thanks, or a question about you or what you can do
+(e.g. "hi", "who are you?", "what can you do?"), reply briefly and warmly in the user's language,
+say what you can help with, and suggest asking about their documents. Do not say you lack
+information for these, and do not cite sources for them.
+
+For questions about content, prefer the provided sources and use your knowledge to fill gaps.
 
 **Response rules:**
 - Use markdown formatting: headers (##), bullet points, bold for key terms, code blocks where relevant.
@@ -130,7 +139,7 @@ Your task is to answer the user's question, preferring the provided sources but 
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Sources:\n{context_str}\nQuestion: {query}")
+            HumanMessage(content=f"Sources:\n{context_str or '(none matched this message)'}\nQuestion: {query}")
         ]
 
         response = await self.llm.ainvoke(messages)

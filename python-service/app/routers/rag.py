@@ -67,12 +67,8 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
             result = await db.execute(stmt)
             chunks = result.scalars().all()
             
-        if not chunks and req.strictSources:
-            return ChatResponse(
-                answer="No relevant information found in the provided sources.",
-                citations=[]
-            )
-        
+        # No early "nothing found" reply: the prompt handles greetings and
+        # questions about the assistant, and says when sources don't cover a question.
         # 3. LLM Generation
         answer, citations = await llm_service.generate_response(req.message, chunks, req.strictSources)
         
