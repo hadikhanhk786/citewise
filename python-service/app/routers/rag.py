@@ -67,6 +67,11 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
             result = await db.execute(stmt)
             chunks = result.scalars().all()
             
+        # Retrieval picks the chunks by relevance; present them in document order so
+        # follow-up questions on the same PDF send an identical prompt prefix, which
+        # Ollama reuses instead of re-reading it (~40s -> ~5s on the free CPU VM).
+        chunks = sorted(chunks, key=lambda c: (c.source_id, c.chunk_index))
+
         # No early "nothing found" reply: the prompt handles greetings and
         # questions about the assistant, and says when sources don't cover a question.
         # 3. LLM Generation

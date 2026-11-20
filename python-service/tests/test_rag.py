@@ -201,3 +201,40 @@ class TestModeFiltering:
                 assert citation["sourceType"] == "YOUTUBE"
         finally:
             app.dependency_overrides.clear()
+
+
+# ── Prompt-cache friendly ordering ──────────────────────────────────────
+
+class TestChunkOrder:
+    @patch("app.routers.rag.llm_service")
+    @patch("app.routers.rag.embedding_service")
+    def test_chunks_reach_the_llm_in_document_order(self, mock_embed, mock_llm, client):
+        """Relevance order changes per question; document order keeps the prompt prefix stable."""
+        mock_embed.embed_query.return_value = [0.1] * 3072
+        mock_llm.generate_response = AsyncMock(return_value=("answer", []))
+        by_relevance = [
+            make_mock_chunk(source_type="PDF", source_id="b", chunk_index=0),
+            make_mock_chunk(source_type="PDF", source_id="a", chunk_index=7),
+            make_mock_chunk(source_type="PDF", source_id="a", chunk_index=2),
+        ]
+        from app.db.session import get_db
+
+        async def mock_db():
+            db = MagicMock()
+            result = MagicMock()
+            result.scalars.return_value.all.return_value = by_relevance
+            db.execute = AsyncMock(return_value=result)
+            yield db
+
+        app.dependency_overrides[get_db] = mock_db
+        try:
+            response = client.post("/rag/chat", json={
+                "workspaceId": "00000000-0000-4000-a000-000000000001",
+                "mode": "PDF",
+                "message": "question",
+            })
+            assert response.status_code == 200
+            sent = mock_llm.generate_response.call_args.args[1]
+            assert [(c.source_id, c.chunk_index) for c in sent] == [("a", 2), ("a", 7), ("b", 0)]
+        finally:
+            app.dependency_overrides.clear()
