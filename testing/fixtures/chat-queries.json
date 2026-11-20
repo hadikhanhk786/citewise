@@ -2,31 +2,39 @@
   "queries": [
     {
       "id": "q1",
-      "description": "Basic RAG question — should match YouTube and Notes",
+      "description": "Basic RAG question \u2014 should match Notes",
       "message": "What is RAG and how does it work?",
-      "mode": "HYBRID",
-      "expectedCitationSourceTypes": ["YOUTUBE", "NOTES"],
-      "expectedCitationFields": ["sourceType", "title", "sourceId", "docId", "snippet"]
-    },
-    {
-      "id": "q2",
-      "description": "YouTube-only mode question",
-      "message": "What example does the tutorial show for building a RAG system?",
-      "mode": "YOUTUBE",
-      "expectedCitationSourceTypes": ["YOUTUBE"],
-      "expectedCitationFields": ["sourceType", "title", "sourceId", "docId", "timestampStart", "timestampEnd", "snippet"]
+      "mode": "NOTES",
+      "expectedCitationSourceTypes": [
+        "NOTES"
+      ],
+      "expectedCitationFields": [
+        "sourceType",
+        "title",
+        "sourceId",
+        "docId",
+        "snippet"
+      ]
     },
     {
       "id": "q3",
       "description": "Notes-only mode question",
       "message": "What are the common failure modes described in the notes?",
       "mode": "NOTES",
-      "expectedCitationSourceTypes": ["NOTES"],
-      "expectedCitationFields": ["sourceType", "title", "sourceId", "docId", "snippet"]
+      "expectedCitationSourceTypes": [
+        "NOTES"
+      ],
+      "expectedCitationFields": [
+        "sourceType",
+        "title",
+        "sourceId",
+        "docId",
+        "snippet"
+      ]
     },
     {
       "id": "q4",
-      "description": "Question with no relevant context — tests strictSources",
+      "description": "Question with no relevant context \u2014 tests strictSources",
       "message": "What is the capital of France?",
       "mode": "HYBRID",
       "strictSources": true,
@@ -35,25 +43,67 @@
     },
     {
       "id": "q5",
-      "description": "Question about pgvector — should match both sources",
+      "description": "Question about pgvector \u2014 should match both sources",
       "message": "How are embeddings stored in the database?",
-      "mode": "HYBRID",
-      "expectedCitationSourceTypes": ["YOUTUBE", "NOTES"],
-      "expectedCitationFields": ["sourceType", "title", "sourceId", "docId", "snippet"]
+      "mode": "NOTES",
+      "expectedCitationSourceTypes": [
+        "NOTES"
+      ],
+      "expectedCitationFields": [
+        "sourceType",
+        "title",
+        "sourceId",
+        "docId",
+        "snippet"
+      ]
     }
   ],
   "expectedCitationSchema": {
     "type": "object",
-    "required": ["sourceType", "title", "sourceId", "docId", "snippet"],
+    "required": [
+      "sourceType",
+      "title",
+      "sourceId",
+      "docId",
+      "snippet"
+    ],
     "properties": {
-      "sourceType": { "type": "string", "enum": ["YOUTUBE", "NOTES"] },
-      "title": { "type": "string" },
-      "sourceId": { "type": "string" },
-      "docId": { "type": "string" },
-      "timestampStart": { "type": ["string", "null"] },
-      "timestampEnd": { "type": ["string", "null"] },
-      "heading": { "type": ["string", "null"] },
-      "snippet": { "type": "string" }
+      "sourceType": {
+        "type": "string",
+        "enum": [
+          "NOTES"
+        ]
+      },
+      "title": {
+        "type": "string"
+      },
+      "sourceId": {
+        "type": "string"
+      },
+      "docId": {
+        "type": "string"
+      },
+      "timestampStart": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "timestampEnd": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "heading": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "snippet": {
+        "type": "string"
+      }
     }
   }
 }

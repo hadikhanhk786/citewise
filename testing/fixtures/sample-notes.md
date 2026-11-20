@@ -15,13 +15,13 @@ Retrieval Augmented Generation (RAG) is an AI framework that enhances Large Lang
 - User queries are also embedded using the same model
 - The system performs similarity search using L2 distance
 - Top-K most similar chunks are retrieved (default K=6)
-- In HYBRID mode, results are split 50/50 between YouTube and Notes sources
+- Only chunks from the user's own sources (PDFs and notes) are retrieved
 
 ### 3. Generation
 - Retrieved chunks are formatted as context
 - A system prompt instructs the LLM to only use provided context
 - The LLM generates a response with citations pointing back to source material
-- Citations include source type, title, timestamps (for YouTube), and text snippets
+- Citations include source type, title, page numbers (for PDFs), and text snippets
 
 ## Best Practices
 
@@ -32,7 +32,7 @@ Retrieval Augmented Generation (RAG) is an AI framework that enhances Large Lang
 
 ## Common Failure Modes
 
-1. **No transcript available** — YouTube videos without captions will fail ingestion
+1. **Scanned PDF** — PDFs with no extractable text yield no chunks
 2. **Empty notes** — Files with no readable text are rejected at upload
 3. **API key missing** — Embedding service returns 502 without valid credentials
 4. **Postgres down** — All operations fail; health endpoint reports degraded

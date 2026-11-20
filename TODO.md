@@ -8,7 +8,7 @@
 - [ ] python-service leftovers: `YOUTUBE` mode in rag.py/schemas, YT_* error codes, llm.py YouTube prompt text, `VideoSummary` model
 - [ ] Owner: Prisma schema cleanup (youtube source type/enum, video summary columns) + migration
 
-- [ ] testing/fixtures: drop YOUTUBE entries from chat-queries.json and sample-notes.md
+- [x] testing/fixtures: dropped YOUTUBE entries from chat-queries.json and sample-notes.md
 
 ## Bugs
 - python-service/requirements.txt pins psycopg-binary 3.1.18 transitively (`psycopg[binary]==3.1.18`), which no longer installs on current Python indexes (found installing deps)
