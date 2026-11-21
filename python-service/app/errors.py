@@ -11,9 +11,6 @@ from fastapi.responses import JSONResponse
 # ---- Error codes (keep in sync with Node) --------------------------------
 
 class ErrorCode:
-    YT_INVALID_URL = "YT_INVALID_URL"
-    YT_TRANSCRIPT_UNAVAILABLE = "YT_TRANSCRIPT_UNAVAILABLE"
-    YT_VIDEO_NOT_FOUND = "YT_VIDEO_NOT_FOUND"
 
     PDF_UNSUPPORTED_TYPE = "PDF_UNSUPPORTED_TYPE"
     PDF_EMPTY_FILE = "PDF_EMPTY_FILE"
@@ -39,9 +36,6 @@ class ErrorCode:
 
 
 _STATUS_BY_CODE: dict[str, int] = {
-    ErrorCode.YT_INVALID_URL: 400,
-    ErrorCode.YT_TRANSCRIPT_UNAVAILABLE: 422,
-    ErrorCode.YT_VIDEO_NOT_FOUND: 404,
     ErrorCode.PDF_UNSUPPORTED_TYPE: 400,
     ErrorCode.PDF_EMPTY_FILE: 400,
     ErrorCode.PDF_PARSE_FAILED: 422,
@@ -64,8 +58,6 @@ _STATUS_BY_CODE: dict[str, int] = {
 
 # Internal (dev) messages — user-friendly translation happens in Node.
 _DEV_MESSAGE: dict[str, str] = {
-    ErrorCode.YT_INVALID_URL: "Invalid YouTube URL",
-    ErrorCode.YT_TRANSCRIPT_UNAVAILABLE: "Transcript unavailable for this video",
     ErrorCode.PDF_UNSUPPORTED_TYPE: "File must be a .pdf",
     ErrorCode.PDF_EMPTY_FILE: "PDF is empty or has no extractable text",
     ErrorCode.PDF_PARSE_FAILED: "Failed to parse PDF",

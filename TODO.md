@@ -5,7 +5,8 @@
 - [x] server: youtube/summarize/reindex routes, controller, service, schemas, YT_ error codes, chat mode (reindex was YouTube-only)
 - [x] UI: pages, buttons, source-type options, API calls (src/) incl. dead reindex/summarize calls
 - [x] README/docs/testing checklist mentions (fixtures/chat-queries.json and sample-notes.md still mention YouTube)
-- [ ] python-service leftovers: `YOUTUBE` mode in rag.py/schemas, YT_* error codes, llm.py YouTube prompt text, `VideoSummary` model
+- [x] python-service: YT_* error codes, llm.py YouTube prompt text/branch
+- [ ] python-service leftovers: `YOUTUBE` mode in rag.py/schemas (and tests/test_rag.py), `VideoSummary` model
 - [ ] Owner: Prisma schema cleanup (youtube source type/enum, video summary columns) + migration
 
 - [x] testing/fixtures: dropped YOUTUBE entries from chat-queries.json and sample-notes.md
@@ -14,6 +15,7 @@
 - python-service/requirements.txt pins psycopg-binary 3.1.18 transitively (`psycopg[binary]==3.1.18`), which no longer installs on current Python indexes (found installing deps)
 - Server tests need DATABASE_URL, JWT_SECRET, PY_AI_BASE_URL env vars set (not documented for tests)
 - Root `npm run lint` fails with ~40 errors (mostly no-explicit-any)
+- python tests can't be collected offline: need DATABASE_URL + OPENAI_API_KEY env vars and tiktoken downloads encodings at import (also sqlalchemy==2.0.28 pin breaks on newer Python typing)
 - python tests using tiktoken need network to download encodings (fail offline)
 
 ## Features (keep simple)

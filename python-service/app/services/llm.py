@@ -57,18 +57,7 @@ class LLMService:
             ref_num = i + 1
 
             # Build a rich source label so the LLM knows what kind of source this is
-            if source_type == 'YOUTUBE':
-                start = meta.get('start')
-                end = meta.get('end')
-                if start is not None:
-                    ts_label = f"[{self._format_ts_display(start)} – {self._format_ts_display(end)}]"
-                else:
-                    ts_label = ""
-                context_str += (
-                    f"[Source {ref_num}] (YouTube video: \"{title}\" {ts_label})\n"
-                    f"{chunk.content}\n\n"
-                )
-            elif source_type == 'PDF':
+            if source_type == 'PDF':
                 page = meta.get('page')
                 heading = meta.get('heading', '')
                 page_label = f"page {page}" if page is not None else ""
@@ -106,7 +95,6 @@ For questions about content, answer using ONLY the provided sources.
 **Response rules:**
 - Use markdown formatting: headers (##), bullet points, bold for key terms, code blocks where relevant.
 - Structure your answer clearly — start with a direct answer, then elaborate.
-- For YouTube sources: reference them as "In the video \"<title>\" at <timestamp>" when citing.
 - For PDF sources: reference them as "According to \"<title>\" (page X)" when citing.
 - If the sources do not contain enough information, say exactly: "I don't have enough information in your sources to answer that."
 - Do NOT use prior knowledge. Do NOT speculate beyond the sources.
@@ -128,7 +116,6 @@ For questions about content, prefer the provided sources and use your knowledge 
 **Response rules:**
 - Use markdown formatting: headers (##), bullet points, bold for key terms, code blocks where relevant.
 - Structure your answer clearly — start with a direct answer, then elaborate with detail.
-- For YouTube sources: reference them as "In the video \"<title>\" at <timestamp>" when citing.
 - For PDF sources: reference them as "According to \"<title>\" (page X)" when citing.
 - If a topic isn't covered by the sources, clearly say so before supplementing with general knowledge.
 - Do not make up facts or invent source content.
