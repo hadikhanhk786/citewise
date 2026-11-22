@@ -13,6 +13,7 @@
 - [x] testing/fixtures: dropped YOUTUBE entries from chat-queries.json and sample-notes.md
 
 ## Bugs
+- [x] chat send-message schema didn't validate `sourceIds` (now must be a list of UUIDs)
 - python-service/requirements.txt pins psycopg-binary 3.1.18 transitively (`psycopg[binary]==3.1.18`), which no longer installs on current Python indexes (found installing deps)
 - Server tests need DATABASE_URL, JWT_SECRET, PY_AI_BASE_URL env vars set (not documented for tests)
 - Root `npm run lint` fails with ~40 errors (mostly no-explicit-any)

@@ -243,6 +243,16 @@ describe('POST /api/chat/sessions/:id/messages', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('should reject sourceIds that are not a list of UUIDs', async () => {
+    const res = await authed(
+      request(app)
+        .post(`/api/chat/sessions/${SESSION_ID}/messages`)
+        .send({ content: 'Hello', mode: 'HYBRID', sourceIds: 'not-a-list' })
+    );
+
+    expect(res.status).toBe(422);
+  });
+
   it('should return 404 when session does not exist', async () => {
     (prisma.chatSession.findUnique as jest.Mock).mockResolvedValue(null);
 
