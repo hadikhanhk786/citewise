@@ -10,7 +10,6 @@ from ..services.embedding import EmbeddingService
 from ..services.llm import LLMService
 
 import logging
-import math
 import asyncio
 import time
 from ..config import settings
@@ -36,8 +35,6 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
         if req.filters:
             if req.filters.sourceIds:
                 base_stmt = base_stmt.where(RagChunk.source_id.in_(req.filters.sourceIds))
-            if req.filters.videoId:
-                base_stmt = base_stmt.where(RagChunk.source_id == req.filters.videoId)
         
         # Apply score threshold (L2 distance)
         base_stmt = base_stmt.where(RagChunk.embedding.l2_distance(query_vector) <= settings.SIMILARITY_THRESHOLD)
@@ -45,28 +42,13 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
         
         top_k = req.topK or settings.DEFAULT_TOP_K
         
-        # Execute queries based on Mode
-        if req.mode == 'HYBRID':
-            youtube_stmt = base_stmt.where(RagChunk.source_type == 'YOUTUBE').limit(math.ceil(top_k / 2))
-            pdf_stmt = base_stmt.where(RagChunk.source_type == 'PDF').limit(math.floor(top_k / 2))
+        # PDF / NOTES restrict the source type; HYBRID searches everything.
+        stmt = base_stmt
+        if req.mode in ('PDF', 'NOTES'):
+            stmt = base_stmt.where(RagChunk.source_type == req.mode)
+        result = await db.execute(stmt.limit(top_k))
+        chunks = result.scalars().all()
 
-            yt_res, pdf_res = await asyncio.gather(
-                db.execute(youtube_stmt),
-                db.execute(pdf_stmt)
-            )
-            chunks = yt_res.scalars().all() + pdf_res.scalars().all()
-        else:
-            if req.mode == 'YOUTUBE':
-                stmt = base_stmt.where(RagChunk.source_type == 'YOUTUBE')
-            elif req.mode == 'PDF':
-                stmt = base_stmt.where(RagChunk.source_type == 'PDF')
-            else:
-                stmt = base_stmt
-
-            stmt = stmt.limit(top_k)
-            result = await db.execute(stmt)
-            chunks = result.scalars().all()
-            
         # Retrieval picks the chunks by relevance; present them in document order so
         # follow-up questions on the same PDF send an identical prompt prefix, which
         # Ollama reuses instead of re-reading it (~40s -> ~5s on the free CPU VM).

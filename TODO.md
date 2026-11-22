@@ -6,7 +6,8 @@
 - [x] UI: pages, buttons, source-type options, API calls (src/) incl. dead reindex/summarize calls
 - [x] README/docs/testing checklist mentions (fixtures/chat-queries.json and sample-notes.md still mention YouTube)
 - [x] python-service: YT_* error codes, llm.py YouTube prompt text/branch
-- [ ] python-service leftovers: `YOUTUBE` mode in rag.py/schemas (and tests/test_rag.py), `VideoSummary` model
+- [x] python-service leftovers: `YOUTUBE` mode in rag.py/schemas (and tests/test_rag.py); also fixed NOTES mode 422 and HYBRID returning only half the chunks
+- [ ] python-service: `VideoSummary` model leftovers (if any)
 - [ ] Owner: Prisma schema cleanup (youtube source type/enum, video summary columns) + migration
 
 - [x] testing/fixtures: dropped YOUTUBE entries from chat-queries.json and sample-notes.md

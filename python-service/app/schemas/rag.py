@@ -6,12 +6,11 @@ from datetime import datetime
 # --- Chat ---
 class ChatFilters(BaseModel):
     sourceIds: Optional[List[str]] = None
-    videoId: Optional[str] = None
     pdfSourceId: Optional[str] = None
 
 class ChatRequest(BaseModel):
     workspaceId: UUID
-    mode: Literal['YOUTUBE', 'PDF', 'HYBRID']
+    mode: Literal['PDF', 'NOTES', 'HYBRID']
     strictSources: bool = False
     message: str = Field(..., min_length=1)
     filters: Optional[ChatFilters] = None

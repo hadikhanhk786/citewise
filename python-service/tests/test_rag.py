@@ -15,7 +15,7 @@ def client():
     return TestClient(app)
 
 
-def make_mock_chunk(source_type="YOUTUBE", source_id="vid1", doc_id="vid1",
+def make_mock_chunk(source_type="PDF", source_id="doc1", doc_id="doc1",
                     content="test content", chunk_index=0, title="Test Source",
                     start=0.0, end=5.0):
     """Create a mock RagChunk object."""
@@ -76,21 +76,6 @@ class TestChatValidation:
 # ── Citation Structure ──────────────────────────────────────────────────
 
 class TestCitationFormatting:
-    def test_youtube_citation_has_required_fields(self):
-        citation = Citation(
-            sourceType="YOUTUBE",
-            title="RAG Tutorial",
-            sourceId="abc123",
-            docId="abc123",
-            timestampStart="0",
-            timestampEnd="5",
-            snippet="welcome to this tutorial...",
-        )
-        assert citation.sourceType == "YOUTUBE"
-        assert citation.timestampStart == "0"
-        assert citation.timestampEnd == "5"
-        assert citation.snippet is not None
-
     def test_pdf_citation_has_page_field(self):
         citation = Citation(
             sourceType="PDF",
@@ -142,7 +127,7 @@ class TestStrictSources:
         try:
             response = client.post("/rag/chat", json={
                 "workspaceId": "00000000-0000-4000-a000-000000000001",
-                "mode": "YOUTUBE",
+                "mode": "NOTES",
                 "strictSources": True,
                 "message": "What is the capital of France?",
             })
@@ -162,43 +147,27 @@ class TestStrictSources:
 class TestModeFiltering:
     @patch("app.routers.rag.llm_service")
     @patch("app.routers.rag.embedding_service")
-    def test_youtube_mode_queries_youtube_chunks(self, mock_embed, mock_llm, client):
+    def test_notes_mode_is_accepted(self, mock_embed, mock_llm, client):
+        """The server sends HYBRID, PDF or NOTES; NOTES used to be rejected with 422."""
         mock_embed.embed_query.return_value = [0.1] * 3072
-
-        yt_chunk = make_mock_chunk(source_type="YOUTUBE", content="youtube content")
-
+        mock_llm.generate_response = AsyncMock(return_value=("ok", []))
         from app.db.session import get_db
 
         async def mock_db():
             db = MagicMock()
-            mock_result = MagicMock()
-            mock_result.scalars.return_value.all.return_value = [yt_chunk]
-            db.execute = AsyncMock(return_value=mock_result)
+            result = MagicMock()
+            result.scalars.return_value.all.return_value = []
+            db.execute = AsyncMock(return_value=result)
             yield db
 
         app.dependency_overrides[get_db] = mock_db
-
-        mock_llm.generate_response = AsyncMock(return_value=(
-            "Answer based on YouTube",
-            [Citation(
-                sourceType="YOUTUBE", title="Test", sourceId="vid1",
-                docId="vid1", snippet="youtube content...",
-                timestampStart="0", timestampEnd="5"
-            )]
-        ))
-
         try:
             response = client.post("/rag/chat", json={
                 "workspaceId": "00000000-0000-4000-a000-000000000001",
-                "mode": "YOUTUBE",
-                "message": "What is discussed?",
+                "mode": "NOTES",
+                "message": "question",
             })
-
             assert response.status_code == 200
-            data = response.json()
-            assert len(data["citations"]) >= 1
-            for citation in data["citations"]:
-                assert citation["sourceType"] == "YOUTUBE"
         finally:
             app.dependency_overrides.clear()
 

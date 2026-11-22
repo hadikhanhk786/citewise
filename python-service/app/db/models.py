@@ -10,7 +10,7 @@ class RagChunk(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     workspace_id = Column(UUID(as_uuid=True), nullable=False)
-    source_type = Column(String, nullable=False)  # 'YOUTUBE' or 'NOTES'
+    source_type = Column(String, nullable=False)  # 'PDF' or 'NOTES'
     source_id = Column(String, nullable=False)
     doc_id = Column(String, nullable=False)
     chunk_index = Column(Integer, nullable=False)
