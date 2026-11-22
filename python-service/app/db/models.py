@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, func, Index, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Text, DateTime, func, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from pgvector.sqlalchemy import Vector
 from .session import Base
@@ -25,19 +25,4 @@ class RagChunk(Base):
         Index('idx_rag_chunks_doc_id', doc_id),
         # ivfflat index creation usually done manually or via alembic as it needs rows.
         # validating pgvector extension existence is done via migration usually.
-    )
-
-
-class VideoSummary(Base):
-    __tablename__ = "video_summaries"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workspace_id = Column(UUID(as_uuid=True), nullable=False)
-    video_id = Column(String, nullable=False)
-    summary = Column(JSONB, nullable=False)  # {overview, keyPoints, chapters}
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint('workspace_id', 'video_id', name='uq_video_summary_workspace_video'),
-        Index('idx_video_summaries_lookup', workspace_id, video_id),
     )
