@@ -6,8 +6,9 @@ tunnel URL on port 8080 (POST /gpu/register, Bearer GPU_TOKEN) and repeats it as
 the reply tells it how long chat has been idle so it can shut itself down.
 
 On-demand GPU: when a chat arrives and no GPU is registered, the router starts the Kaggle
-notebook with `kaggle kernels push` (needs kaggle.json in KAGGLE_CONFIG_DIR). Without it,
-the router simply keeps using the local model.
+notebook with `kaggle kernels push`. It needs a Kaggle API token in KAGGLE_CONFIG_DIR, either
+`access_token` (new KGAT_ tokens) or a legacy `kaggle.json`. Without one, the router simply
+keeps using the local model.
 """
 import hmac
 import http.client
@@ -43,21 +44,32 @@ def drop_gpu():
         state["url"] = None
 
 
-def kaggle_configured():
-    return os.path.exists(os.path.join(os.environ.get("KAGGLE_CONFIG_DIR", "~/.kaggle"), "kaggle.json"))
+KAGGLE_DIR = os.environ.get("KAGGLE_CONFIG_DIR", os.path.expanduser("~/.kaggle"))
+
+
+def kaggle_env():
+    """Environment for the kaggle CLI, or None when no token is configured."""
+    token_file = os.path.join(KAGGLE_DIR, "access_token")
+    if os.path.exists(token_file):
+        with open(token_file) as f:
+            return {**os.environ, "KAGGLE_API_TOKEN": f.read().strip()}
+    if os.path.exists(os.path.join(KAGGLE_DIR, "kaggle.json")):
+        return dict(os.environ)
+    return None
 
 
 def maybe_start_gpu():
     """Launch the Kaggle notebook in the background if chat is used and no GPU is up."""
     with lock:
         now = time.time()
-        if not kaggle_configured() or now - state["start_requested"] < START_COOLDOWN:
+        env = kaggle_env()
+        if env is None or now - state["start_requested"] < START_COOLDOWN:
             return
         state["start_requested"] = now
 
     def push():
         result = subprocess.run(["kaggle", "kernels", "push", "-p", KERNEL_DIR],
-                                capture_output=True, text=True, timeout=120)
+                                capture_output=True, text=True, timeout=120, env=env)
         print("kaggle push:", result.returncode, (result.stdout + result.stderr).strip()[-300:], flush=True)
 
     threading.Thread(target=push, daemon=True).start()

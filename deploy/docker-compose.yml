@@ -43,7 +43,7 @@ services:
       KAGGLE_CONFIG_DIR: /app/secrets
     volumes:
       - ../kaggle:/app/kernel:ro          # notebook + kernel-metadata.json pushed to Kaggle
-      - ./kaggle-secrets:/app/secrets:ro  # put kaggle.json here to enable on-demand GPU
+      - ./kaggle-secrets:/app/secrets:ro  # Kaggle API token (access_token) enables on-demand GPU
 
   rag:
     build: ../python-service
