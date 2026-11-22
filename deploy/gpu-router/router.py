@@ -52,7 +52,10 @@ def kaggle_env():
     token_file = os.path.join(KAGGLE_DIR, "access_token")
     if os.path.exists(token_file):
         with open(token_file) as f:
-            return {**os.environ, "KAGGLE_API_TOKEN": f.read().strip()}
+            token = f.read().strip()
+        # kaggle 1.7 still insists on a username/key before it uses KAGGLE_API_TOKEN.
+        return {**os.environ, "KAGGLE_API_TOKEN": token, "KAGGLE_KEY": token,
+                "KAGGLE_USERNAME": os.environ.get("KAGGLE_USERNAME", "hadikhanhk")}
     if os.path.exists(os.path.join(KAGGLE_DIR, "kaggle.json")):
         return dict(os.environ)
     return None
