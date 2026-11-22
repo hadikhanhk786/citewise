@@ -35,14 +35,15 @@ services:
 
   # Sends chat to a Kaggle GPU while one is registered (see kaggle/), else to local Ollama.
   gpu-router:
-    image: python:3.12-slim
+    build: ./gpu-router
     restart: unless-stopped
-    command: ["python", "-u", "/app/router.py"]
     depends_on: [ollama]
     environment:
       GPU_TOKEN: ${GPU_TOKEN}
+      KAGGLE_CONFIG_DIR: /app/secrets
     volumes:
-      - ./gpu-router:/app:ro
+      - ../kaggle:/app/kernel:ro          # notebook + kernel-metadata.json pushed to Kaggle
+      - ./kaggle-secrets:/app/secrets:ro  # put kaggle.json here to enable on-demand GPU
 
   rag:
     build: ../python-service

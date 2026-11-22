@@ -2,13 +2,18 @@
 
 The RAG service talks to this as if it were Ollama (port 11434). Embeddings always go to the
 local Ollama so new vectors match the ones already stored. A Kaggle notebook registers its
-tunnel URL on port 8080 (POST /gpu/register, Bearer GPU_TOKEN) and repeats it as a heartbeat.
-Standard library only, so the container needs no installs.
+tunnel URL on port 8080 (POST /gpu/register, Bearer GPU_TOKEN) and repeats it as a heartbeat;
+the reply tells it how long chat has been idle so it can shut itself down.
+
+On-demand GPU: when a chat arrives and no GPU is registered, the router starts the Kaggle
+notebook with `kaggle kernels push` (needs kaggle.json in KAGGLE_CONFIG_DIR). Without it,
+the router simply keeps using the local model.
 """
 import hmac
 import http.client
 import json
 import os
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -17,10 +22,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 LOCAL = os.environ.get("LOCAL_OLLAMA", "http://ollama:11434")
 TOKEN = os.environ.get("GPU_TOKEN", "")
 HEARTBEAT_TTL = 600  # seconds without a heartbeat before the GPU is considered gone
+START_COOLDOWN = 900  # don't re-launch Kaggle more often than this while one is booting
+KERNEL_DIR = os.environ.get("KAGGLE_KERNEL_DIR", "/app/kernel")
 GPU_PATHS = ("/api/chat", "/api/generate")
 HOP_HEADERS = {"connection", "transfer-encoding", "content-length", "keep-alive", "host"}
 
-state = {"url": None, "model": None, "seen": 0.0}
+state = {"url": None, "model": None, "seen": 0.0, "last_chat": 0.0, "start_requested": 0.0}
 lock = threading.Lock()
 
 
@@ -34,6 +41,26 @@ def gpu():
 def drop_gpu():
     with lock:
         state["url"] = None
+
+
+def kaggle_configured():
+    return os.path.exists(os.path.join(os.environ.get("KAGGLE_CONFIG_DIR", "~/.kaggle"), "kaggle.json"))
+
+
+def maybe_start_gpu():
+    """Launch the Kaggle notebook in the background if chat is used and no GPU is up."""
+    with lock:
+        now = time.time()
+        if not kaggle_configured() or now - state["start_requested"] < START_COOLDOWN:
+            return
+        state["start_requested"] = now
+
+    def push():
+        result = subprocess.run(["kaggle", "kernels", "push", "-p", KERNEL_DIR],
+                                capture_output=True, text=True, timeout=120)
+        print("kaggle push:", result.returncode, (result.stdout + result.stderr).strip()[-300:], flush=True)
+
+    threading.Thread(target=push, daemon=True).start()
 
 
 def open_upstream(base, method, path, body, headers, timeout):
@@ -52,6 +79,11 @@ class OllamaProxy(BaseHTTPRequestHandler):
         headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_HEADERS}
         url, model = gpu()
         resp = None
+        if self.path.startswith(GPU_PATHS):
+            with lock:
+                state["last_chat"] = time.time()
+            if not url:
+                maybe_start_gpu()
         if url and self.path.startswith(GPU_PATHS):
             try:
                 gpu_body = body
@@ -92,7 +124,9 @@ class Admin(BaseHTTPRequestHandler):
 
     def do_GET(self):
         url, model = gpu()
-        self._send(200, {"gpu": bool(url), "model": model if url else None})
+        with lock:
+            booting = not url and time.time() - state["start_requested"] < START_COOLDOWN
+        self._send(200, {"gpu": bool(url), "model": model if url else None, "starting": booting})
 
     def do_POST(self):
         if self.path != "/gpu/register":
@@ -109,7 +143,9 @@ class Admin(BaseHTTPRequestHandler):
             return self._send(400, {"error": str(e)})
         with lock:
             state.update(url=url, model=data.get("model"), seen=time.time())
-        self._send(200, {"ok": True})
+            idle = int(time.time() - state["last_chat"]) if state["last_chat"] else None
+        # The notebook shuts itself down once chat has been idle long enough.
+        self._send(200, {"ok": True, "idle_seconds": idle})
 
 
 if __name__ == "__main__":

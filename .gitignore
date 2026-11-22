@@ -39,3 +39,6 @@ venv/
 
 # Personal files
 resume.html
+
+# Kaggle API token for on-demand GPU (server only)
+deploy/kaggle-secrets/
