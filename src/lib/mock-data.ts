@@ -157,9 +157,9 @@ export const mockInsightsData = {
   thumbsDown: 18,
   auditLog: [
     { id: 'l1', action: 'Query', user: 'alex@company.io', details: 'Hybrid search: "transformer attention"', timestamp: '10:31 AM' },
-    { id: 'l2', action: 'Index', user: 'system', details: 'Indexed youtube/abc123 (5 chunks)', timestamp: '10:15 AM' },
+    { id: 'l2', action: 'Index', user: 'system', details: 'Indexed paper.pdf (5 chunks)', timestamp: '10:15 AM' },
     { id: 'l3', action: 'Upload', user: 'alex@company.io', details: 'Uploaded ML System Design Notes', timestamp: '09:45 AM' },
-    { id: 'l4', action: 'Error', user: 'system', details: 'Transcript fetch failed for youtube/ghi789', timestamp: '09:30 AM' },
+    { id: 'l4', action: 'Error', user: 'system', details: 'Text extraction failed for scan.pdf', timestamp: '09:30 AM' },
     { id: 'l5', action: 'Query', user: 'sara@company.io', details: 'Notes search: "Q1 product requirements"', timestamp: '09:12 AM' },
   ],
 };

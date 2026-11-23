@@ -139,7 +139,8 @@ export const ChatPage: React.FC = () => {
     const toggleCitation = (msgId: string) => {
         setExpandedCitations(prev => {
             const next = new Set(prev);
-            next.has(msgId) ? next.delete(msgId) : next.add(msgId);
+            if (next.has(msgId)) next.delete(msgId);
+            else next.add(msgId);
             return next;
         });
     };
