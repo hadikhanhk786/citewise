@@ -76,7 +76,7 @@ export const chatService = {
 
       const { answer, citations } = response.data;
 
-      const assistantMessage = await prisma.chatMessage.create({
+      await prisma.chatMessage.create({
         data: {
           sessionId,
           sender: 'ASSISTANT',

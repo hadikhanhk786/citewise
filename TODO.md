@@ -16,7 +16,8 @@
 - [x] chat send-message schema didn't validate `sourceIds` (now must be a list of UUIDs)
 - python-service/requirements.txt pins psycopg-binary 3.1.18 transitively (`psycopg[binary]==3.1.18`), which no longer installs on current Python indexes (found installing deps)
 - Server tests need DATABASE_URL, JWT_SECRET, PY_AI_BASE_URL env vars set (not documented for tests)
-- Root `npm run lint` fails with ~35 errors (mostly no-explicit-any; also unused vars in server/src, set-state-in-effect in ChatPage)
+- Root `npm run lint` still fails (~32 errors: mostly no-explicit-any; set-state-in-effect in ChatPage; fast-refresh exports in Toast/AuthContext; no-namespace in server auth.ts)
+- [x] removed unused vars in chat.service.ts and middleware/auth.ts (lint)
 - [x] ChatPage toggleCitation used a ternary as a statement (lint no-unused-expressions)
 - [x] mock-data audit log still mentioned youtube
 - python tests can't be collected offline: need DATABASE_URL + OPENAI_API_KEY env vars and tiktoken downloads encodings at import (also sqlalchemy==2.0.28 pin breaks on newer Python typing)

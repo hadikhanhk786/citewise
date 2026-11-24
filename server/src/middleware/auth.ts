@@ -50,7 +50,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       };
 
       next();
-    } catch (err) {
+    } catch {
       throw new AppError('Invalid token', 401);
     }
   } catch (error) {
