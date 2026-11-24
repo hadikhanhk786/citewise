@@ -76,7 +76,7 @@ export const chatService = {
 
       const { answer, citations } = response.data;
 
-      await prisma.chatMessage.create({
+      const assistantMessage = await prisma.chatMessage.create({
         data: {
           sessionId,
           sender: 'ASSISTANT',
@@ -110,7 +110,7 @@ export const chatService = {
       });
 
       // Persist an assistant fallback message so the chat thread stays coherent.
-      const assistantMessage = await prisma.chatMessage.create({
+      await prisma.chatMessage.create({
         data: {
           sessionId,
           sender: 'ASSISTANT',
