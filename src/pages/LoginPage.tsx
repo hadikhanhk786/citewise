@@ -5,6 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { Input, Button } from '../components/ui';
 import { Lock, Mail } from 'lucide-react';
 import './LoginPage.css';
+import { isAxiosError } from 'axios';
+
+const getErrorMessage = (err: unknown, fallback: string): string =>
+    (isAxiosError(err) && err.response?.data?.message) || fallback;
 
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -23,8 +27,8 @@ export const LoginPage: React.FC = () => {
             const { data } = await apiClient.post('/auth/login', { email, password });
             login(data.token, data.user);
             navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Login failed'));
         } finally {
             setLoading(false);
         }
@@ -43,8 +47,8 @@ export const LoginPage: React.FC = () => {
             });
             login(data.token, data.user);
             navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Registration failed'));
         } finally {
             setLoading(false);
         }
