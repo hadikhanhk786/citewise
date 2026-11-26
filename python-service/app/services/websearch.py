@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng:8080")
 MAX_PAGES = 3
-PAGE_CHARS = 2500
+PAGE_CHARS = 1500
 MAX_BYTES = 1_500_000
 UA = "Mozilla/5.0 (compatible; CitewiseBot/1.0)"
 SKIP_TAGS = {"script", "style", "nav", "footer", "header", "aside", "noscript", "svg", "form"}

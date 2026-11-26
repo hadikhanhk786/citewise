@@ -46,6 +46,8 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
         base_stmt = base_stmt.order_by(RagChunk.embedding.l2_distance(query_vector))
         
         top_k = req.topK or settings.DEFAULT_TOP_K
+        if req.webSearch:
+            top_k = min(top_k, 3)   # web pages add ~3 sources; keep the prompt small on CPU
         
         # PDF / NOTES restrict the source type; HYBRID searches everything.
         stmt = base_stmt
