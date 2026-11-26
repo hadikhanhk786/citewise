@@ -36,7 +36,7 @@ apiClient.interceptors.response.use(
       }
     }
     // Normalize to our ApiError shape and attach for consumers.
-    (error as any).apiError = parseApiError(error);
+    (error as { apiError?: unknown }).apiError = parseApiError(error);
     return Promise.reject(error);
   }
 );

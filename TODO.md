@@ -17,7 +17,7 @@
 - python-service/requirements.txt pins psycopg-binary 3.1.18 transitively (`psycopg[binary]==3.1.18`), which no longer installs on current Python indexes (found installing deps)
 - Server tests need DATABASE_URL, JWT_SECRET, PY_AI_BASE_URL env vars set (not documented for tests)
 - Root `npm run lint` still fails (~32 errors: mostly no-explicit-any; set-state-in-effect in ChatPage; fast-refresh exports in Toast/AuthContext; no-namespace in server auth.ts)
-- [x] LoginPage: replaced `any` catch types (lint); api.ts now typed; remaining no-explicit-any in src/lib/axios.ts, server audit.service.ts, errorLog.service.ts
+- [x] LoginPage: replaced `any` catch types (lint); api.ts now typed; axios.ts and audit.service.ts typed; remaining no-explicit-any in server errorLog.service.ts
 - [x] removed unused vars in chat.service.ts and middleware/auth.ts (lint)
 - [x] ChatPage toggleCitation used a ternary as a statement (lint no-unused-expressions)
 - [x] mock-data audit log still mentioned youtube
