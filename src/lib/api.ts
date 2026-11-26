@@ -23,6 +23,17 @@ export interface InsightsData {
   auditLog: InsightsAuditEntry[];
 }
 
+/* Raw shapes returned by the API (only fields the UI reads) */
+interface ApiSource {
+  id: string; title: string; type: string; status?: string; createdAt?: string; updatedAt?: string;
+  errorReason?: string | null; errorCode?: string | null;
+  pdfDocument?: { filename?: string; pageCount?: number | null } | null;
+}
+interface ApiCitation { sourceType: string; title: string; page?: number; heading?: string; snippet?: string }
+interface ApiMessage { id: string; sender: string; content: string; createdAt: string; citations?: ApiCitation[] }
+interface ApiSession { id: string; title: string; createdAt: string }
+interface UploadResult { id?: string; [key: string]: unknown }
+
 /* ===== Health ===== */
 export const fetchHealth = async (): Promise<{ status: 'healthy' | 'degraded' | 'down' }> => {
   const { data } = await apiClient.get('/health');
@@ -44,19 +55,19 @@ export const fetchDashboard = async (): Promise<DashboardData> => {
 export const fetchPdfSources = async (): Promise<PdfSource[]> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const { data } = await apiClient.get(`/sources?workspaceId=${workspaceId}`);
-  return data.filter((s: any) => s.type === 'PDF').map((s: any) => ({
+  return (data as ApiSource[]).filter((s) => s.type === 'PDF').map((s) => ({
     id: s.id,
     title: s.title,
     filename: s.pdfDocument?.filename || s.title,
     pageCount: s.pdfDocument?.pageCount ?? undefined,
     addedAt: (s.createdAt || '').split('T')[0],
-    status: (s.status || 'INDEXING').toLowerCase(),
+    status: (s.status || 'INDEXING').toLowerCase() as PdfSource['status'],
     errorReason: s.errorReason ?? undefined,
     errorCode: s.errorCode ?? undefined,
   }));
 };
 
-export const uploadPdf = async (file: File): Promise<any> => {
+export const uploadPdf = async (file: File): Promise<UploadResult> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const formData = new FormData();
   formData.append('file', file);
@@ -71,17 +82,17 @@ export const fetchNoteSources = async (): Promise<NoteSource[]> => {
   // Not implemented in backend fully ( NotesCollection model exists but no detailed logic)
   const workspaceId = localStorage.getItem('workspaceId');
   const { data } = await apiClient.get(`/sources?workspaceId=${workspaceId}`);
-  return data.filter((s: any) => s.type === 'NOTES').map((s: any) => ({
+  return (data as ApiSource[]).filter((s) => s.type === 'NOTES').map((s) => ({
       id: s.id,
       title: s.title,
       folder: 'General',
       tag: 'Note',
-      updatedAt: s.updatedAt || s.createdAt,
-      status: s.status.toLowerCase(),
+      updatedAt: s.updatedAt || s.createdAt || '',
+      status: (s.status || 'INDEXING').toLowerCase() as NoteSource['status'],
   }));
 };
 
-export const uploadNotes = async (file: File): Promise<any> => {
+export const uploadNotes = async (file: File): Promise<UploadResult> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const formData = new FormData();
   formData.append('file', file);
@@ -107,7 +118,7 @@ export const deleteSource = async (id: string): Promise<void> => {
 export const fetchChatSessions = async (): Promise<ChatSession[]> => {
   const workspaceId = localStorage.getItem('workspaceId');
   const { data } = await apiClient.get(`/chat/sessions?workspaceId=${workspaceId}`);
-  return data.map((s: any) => ({
+  return (data as ApiSession[]).map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.createdAt.split('T')[0], // Should be updatedAt
@@ -131,7 +142,7 @@ export const createChatSession = async (title: string = 'New Chat'): Promise<Cha
   };
 };
 
-const mapCitation = (c: any) => {
+const mapCitation = (c: ApiCitation) => {
   let type: 'pdf' | 'note';
   if (c.sourceType === 'PDF') type = 'pdf';
   else type = 'note';
@@ -140,13 +151,13 @@ const mapCitation = (c: any) => {
     title: c.title,
     page: c.page,
     heading: c.heading,
-    chunkText: c.snippet,
+    chunkText: c.snippet ?? '',
   };
 };
 
 export const fetchChatMessages = async (sessionId: string): Promise<ChatMessage[]> => {
   const { data } = await apiClient.get(`/chat/sessions/${sessionId}/messages`);
-  return data.map((m: any) => ({
+  return (data as ApiMessage[]).map((m) => ({
       id: m.id,
       role: m.sender === 'USER' ? 'user' : 'assistant',
       content: m.content,
