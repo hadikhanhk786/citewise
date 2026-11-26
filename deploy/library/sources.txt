@@ -1,0 +1,14 @@
+# name | label | repo | sparse paths (comma) | glob (relative to repo root)
+nodejs | Node.js docs | nodejs/node | doc/api | doc/api/*.md
+nestjs | NestJS docs | nestjs/docs.nestjs.com | content | content/**/*.md
+express | Express docs | expressjs/expressjs.com | src/content/docs/en,src/content/api/5x | src/content/**/*.md*
+typescript | TypeScript handbook | microsoft/TypeScript-Website | packages/documentation/copy/en/handbook-v2 | packages/documentation/copy/en/handbook-v2/**/*.md
+postgres | PostgreSQL docs | postgres/postgres | doc/src/sgml | doc/src/sgml/*.sgml
+redis | Redis docs | redis/docs | content/develop | content/develop/**/*.md
+node-best-practices | Node.js Best Practices | goldbergyoni/nodebestpractices | README.md,sections | sections/**/*.md
+system-design-primer | System Design Primer | donnemartin/system-design-primer | README.md,solutions | **/README.md
+system-design | System Design (Karan Pratap Singh) | karanpratapsingh/system-design | README.md | README.md
+system-design-101 | System Design 101 (ByteByteGo) | ByteByteGoHq/system-design-101 | README.md,data/guides | data/guides/*.md
+tech-interview-handbook | Tech Interview Handbook | yangshun/tech-interview-handbook | apps/website/contents | apps/website/contents/**/*.md
+js-interview-questions | JavaScript interview questions | sudheerj/javascript-interview-questions | README.md | README.md
+js-questions | JavaScript questions (Lydia Hallie) | lydiahallie/javascript-questions | README.md | README.md

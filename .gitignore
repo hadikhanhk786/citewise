@@ -42,3 +42,6 @@ resume.html
 
 # Kaggle API token for on-demand GPU (server only)
 deploy/kaggle-secrets/
+
+# Docs library clones (server only)
+deploy/library/repos/

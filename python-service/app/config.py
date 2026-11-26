@@ -1,4 +1,5 @@
 import os
+import uuid
 
 class Settings:
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 500))
@@ -15,6 +16,8 @@ class Settings:
     # Ollama's default context window (2-4k tokens) silently truncates long
     # prompts; grounded answers send several chunks of evidence.
     OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", 8192))
+    # Shared docs library (scripts/build_library.py); searched in HYBRID/NOTES chat for everyone.
+    LIBRARY_WORKSPACE_ID = uuid.UUID(os.getenv("LIBRARY_WORKSPACE_ID", "00000000-0000-4000-8000-00000000d0c5"))
     LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", 180))
 
     # Grounded (cited) PDF answers

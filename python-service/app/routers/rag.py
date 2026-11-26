@@ -29,7 +29,11 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
         query_vector = embedding_service.embed_query(req.message)
         
         # Base query setup
-        base_stmt = select(RagChunk).where(RagChunk.workspace_id == req.workspaceId)
+        # The shared docs library joins the search unless the user picked PDFs or specific sources.
+        workspaces = [req.workspaceId]
+        if req.mode != 'PDF' and not (req.filters and req.filters.sourceIds):
+            workspaces.append(settings.LIBRARY_WORKSPACE_ID)
+        base_stmt = select(RagChunk).where(RagChunk.workspace_id.in_(workspaces))
         
         # Additional filters
         if req.filters:
