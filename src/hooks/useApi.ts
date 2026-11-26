@@ -88,13 +88,14 @@ export const useChatMessages = (sessionId: string | null) =>
 export const useSendMessage = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ sessionId, message, mode, strictSources, sourceIds }: {
+    mutationFn: ({ sessionId, message, mode, strictSources, sourceIds, webSearch }: {
       sessionId: string;
       message: string;
       mode: string;
       strictSources?: boolean;
       sourceIds?: string[];
-    }) => api.sendChatMessage(sessionId, message, mode, strictSources ?? false, sourceIds),
+      webSearch?: boolean;
+    }) => api.sendChatMessage(sessionId, message, mode, strictSources ?? false, sourceIds, webSearch ?? false),
     // Returning the promise makes mutateAsync wait for the refetch, so the
     // optimistic bubble is replaced without a flicker.
     onSuccess: (_, { sessionId }) => Promise.all([

@@ -227,6 +227,7 @@ describe('POST /api/chat/sessions/:id/messages', () => {
       workspaceId: WORKSPACE_ID,
       mode: 'HYBRID',
       strictSources: false,
+      webSearch: false,
       message: 'What is RAG?',
       topK: 6,
     });

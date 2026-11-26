@@ -38,6 +38,7 @@ export const ChatPage: React.FC = () => {
     const [inputText, setInputText] = useState('');
     const [mode, setMode] = useState<'hybrid' | 'pdf'>('hybrid');
     const [strictSource, setStrictSource] = useState(false);
+    const [webSearch, setWebSearch] = useState(false);
     const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set());
     const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
@@ -115,6 +116,7 @@ export const ChatPage: React.FC = () => {
                     message: text,
                     mode,
                     strictSources: strictSource,
+                    webSearch,
                     sourceIds: selectedSourceIds.length > 0 ? selectedSourceIds : undefined,
                 });
             } catch (e) {
@@ -266,6 +268,15 @@ export const ChatPage: React.FC = () => {
                     >
                         {strictSource ? <ToggleRight size={20} className="toggle-on" /> : <ToggleLeft size={20} />}
                         <span>Strict sources</span>
+                    </button>
+                    <button
+                        className="strict-toggle"
+                        onClick={() => setWebSearch(!webSearch)}
+                        aria-pressed={webSearch}
+                        title="Also search the web for the latest information"
+                    >
+                        {webSearch ? <ToggleRight size={20} className="toggle-on" /> : <ToggleLeft size={20} />}
+                        <span>Web search</span>
                     </button>
                 </div>
                 {selectedSourceIds.length > 0 && (

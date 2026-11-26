@@ -35,7 +35,7 @@ export const chatController = {
   sendMessage: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params; // Session ID
-      const { content, mode, strictSources, sourceIds } = req.body;
+      const { content, mode, strictSources, sourceIds, webSearch } = req.body;
       const result = await chatService.sendMessage(
         id as string,
         req.user!.id,
@@ -43,6 +43,7 @@ export const chatController = {
         mode,
         strictSources,
         sourceIds,
+        webSearch,
       );
       res.json(result);
     } catch (error) {

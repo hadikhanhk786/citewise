@@ -49,6 +49,7 @@ export const chatService = {
     mode: ChatMode = 'HYBRID',
     strictSources: boolean = false,
     sourceIds?: string[],
+    webSearch: boolean = false,
   ) {
     const session = await prisma.chatSession.findUnique({ where: { id: sessionId } });
 
@@ -66,6 +67,7 @@ export const chatService = {
         workspaceId: session.workspaceId,
         mode,
         strictSources,
+        webSearch,
         message: content,
         topK: 6,
       };

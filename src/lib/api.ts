@@ -172,11 +172,13 @@ export const sendChatMessage = async (
   mode: string,
   strictSources: boolean = false,
   sourceIds?: string[],
+  webSearch: boolean = false,
 ): Promise<ChatMessage> => {
     const { data } = await apiClient.post(`/chat/sessions/${sessionId}/messages`, {
         content: message,
         mode: mode.toUpperCase(),
         strictSources,
+        webSearch,
         ...(sourceIds && sourceIds.length > 0 ? { sourceIds } : {}),
     });
     

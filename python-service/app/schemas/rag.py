@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     workspaceId: UUID
     mode: Literal['PDF', 'NOTES', 'HYBRID']
     strictSources: bool = False
+    webSearch: bool = False
     message: str = Field(..., min_length=1)
     filters: Optional[ChatFilters] = None
     topK: Optional[int] = Field(6, ge=1, le=20)

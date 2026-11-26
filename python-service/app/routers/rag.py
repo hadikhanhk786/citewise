@@ -8,6 +8,7 @@ from ..db.models import RagChunk
 from ..schemas.rag import ChatRequest, ChatResponse, Citation
 from ..services.embedding import EmbeddingService
 from ..services.llm import LLMService
+from ..services.websearch import web_search
 
 import logging
 import asyncio
@@ -57,6 +58,10 @@ async def chat_rag(req: ChatRequest, request: Request, db: AsyncSession = Depend
         # follow-up questions on the same PDF send an identical prompt prefix, which
         # Ollama reuses instead of re-reading it (~40s -> ~5s on the free CPU VM).
         chunks = sorted(chunks, key=lambda c: (c.source_id, c.chunk_index))
+
+        # Live web results go last so the cached prefix (docs) stays the same.
+        if req.webSearch:
+            chunks = list(chunks) + await asyncio.to_thread(web_search, req.message)
 
         # No early "nothing found" reply: the prompt handles greetings and
         # questions about the assistant, and says when sources don't cover a question.

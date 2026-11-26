@@ -15,6 +15,7 @@ export const sendMessageSchema = z.object({
     content: z.string().min(1),
     mode: z.enum(CHAT_MODES).default('HYBRID'),
     strictSources: z.boolean().optional(),
+    webSearch: z.boolean().optional(),
     sourceIds: z.array(z.string().uuid()).optional(),
   }),
 });

@@ -31,6 +31,7 @@ if [ ! -f .env ]; then
       -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" \
       -e "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" \
       -e "s/^GPU_TOKEN=.*/GPU_TOKEN=$(openssl rand -hex 24)/" \
+      -e "s/^SEARXNG_SECRET=.*/SEARXNG_SECRET=$(openssl rand -hex 32)/" \
       .env.example > .env
   chmod 600 .env
 fi
