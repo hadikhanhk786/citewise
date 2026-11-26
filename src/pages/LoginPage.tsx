@@ -34,26 +34,6 @@ export const LoginPage: React.FC = () => {
         }
     };
 
-    // Quick register for demo
-    const handleRegister = async () => {
-        setError('');
-        setLoading(true);
-        try {
-            // Register with default name
-            const { data } = await apiClient.post('/auth/register', {
-                email,
-                password,
-                name: email.split('@')[0]
-            });
-            login(data.token, data.user);
-            navigate('/dashboard');
-        } catch (err) {
-            setError(getErrorMessage(err, 'Registration failed'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <div className="login-page">
             <div className="login-card">
@@ -86,11 +66,7 @@ export const LoginPage: React.FC = () => {
                         Sign In
                     </Button>
 
-                    <div className="login-divider">or</div>
-
-                    <Button type="button" variant="secondary" onClick={handleRegister} loading={loading} fullWidth>
-                        Create Account
-                    </Button>
+                    <p className="login-note">Citewise is invite-only. Ask the owner for an invite link.</p>
                 </form>
             </div>
         </div>

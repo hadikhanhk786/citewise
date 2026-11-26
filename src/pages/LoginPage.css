@@ -71,3 +71,5 @@
 .login-divider::after {
   margin-left: .5em;
 }
+
+.login-note { margin-top: var(--space-4); text-align: center; font-size: var(--text-sm); color: var(--color-text-tertiary); }

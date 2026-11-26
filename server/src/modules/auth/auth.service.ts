@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { env } from '../../config/env';
 import { AppError } from '../../middleware/error-handler';
+import { inviteMatches } from '../../lib/invite';
 import { registerSchema, loginSchema } from './auth.schema';
 import { z } from 'zod';
 
@@ -11,6 +12,11 @@ type LoginInput = z.infer<typeof loginSchema>['body'];
 
 export const authService = {
   async register(input: RegisterInput) {
+    // Sign-up is invite-only; existing accounts are unaffected (login doesn't change).
+    if (!inviteMatches(input.invite, input.email)) {
+      throw new AppError('Citewise is invite-only. Ask the owner for an invite link.', 403);
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: input.email },
     });
