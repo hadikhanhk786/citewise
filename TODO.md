@@ -25,6 +25,14 @@
 - python tests using tiktoken need network to download encodings (fail offline)
 
 ## Features (keep simple)
+- [ ] **Owner request, do first:** Invite UI. Make the Admin page "Invite Member" button work:
+  - server: `POST /api/auth/invites` `{ email, days? }`, signed-in **ADMIN only** (use middleware/rbac.ts),
+    returns `{ link }` built with `createInvite()` from `server/src/lib/invite.ts` (same format as
+    `server/src/scripts/invite.ts`; APP_URL env, default `https://hadikhanhk786.github.io/citewise`)
+  - UI: modal with an email field and days (default 7) -> shows the link with a Copy button
+  - tests: 403 for non-admin, 422 for bad email, link verifies with `inviteMatches()` for that email
+  - no schema change; invites stay stateless (no list/revoke in this item)
+- [ ] Admin page lists real workspace members instead of `mockAdminUsers` (after the invite item)
 - Delete a source, rename a chat, copy answer with citations
 - Click a citation to open the PDF at that page
 - Short local-setup guide
