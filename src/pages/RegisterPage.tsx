@@ -28,7 +28,8 @@ export const RegisterPage: React.FC = () => {
             login(data.token, data.user);
             navigate('/dashboard');
         } catch (err) {
-            setError((isAxiosError(err) && err.response?.data?.message) || 'Registration failed');
+            const data = isAxiosError(err) ? err.response?.data : undefined;
+            setError(data?.error?.message || data?.message || 'Registration failed');
         } finally {
             setLoading(false);
         }
