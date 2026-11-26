@@ -33,6 +33,23 @@
   - tests: 403 for non-admin, 422 for bad email, link verifies with `inviteMatches()` for that email
   - no schema change; invites stay stateless (no list/revoke in this item)
 - [ ] Admin page lists real workspace members instead of `mockAdminUsers` (after the invite item)
+- [ ] **Owner request, do first (after the invite UI):** Training library: the owner adds material from the UI
+  (a link, a PDF, an HTML/Markdown/text file). It is indexed into the shared docs library right away (chat
+  uses it in HYBRID/NOTES) and is exported for the Kaggle training-data notebook. ADMIN only. No new
+  dependencies, no schema change: everything lives in `rag_chunks` under `settings.LIBRARY_WORKSPACE_ID`
+  with `source_id = "lib:user:<slug>"` and metadata `{title, url, addedBy, addedAt}`. One step per commit:
+  1. python-service: `POST /library/add` (multipart `file` OR form `url`, plus `title`): PDF via `PDFService`,
+     HTML via the stdlib parser in `services/websearch.py`, md/txt as-is; chunk + embed like
+     `scripts/build_library.py`. `GET /library/items` (distinct user-added sources with chunk counts) and
+     `DELETE /library/items/{source_id}`. Tests with mocked embeddings.
+  2. server: ADMIN-only `POST /api/library` (reuse middleware/upload.ts limits; allow .pdf/.html/.md/.txt),
+     `GET /api/library`, `DELETE /api/library/:sourceId`, proxying to the python endpoints. Tests: 403 for
+     non-admin, 422 for neither file nor url.
+  3. UI: Admin page "Training library" panel: "Add link" field, file upload, list (title, chunks, date) with delete.
+  4. Training export: python `GET /library/export` returning user-added items as JSONL `{source, title, url, text}`,
+     protected by `Authorization: Bearer <GPU_TOKEN>`; Caddy route `/library/export` -> rag; then add a source to
+     `kaggle/sft-data/build_notebook.py` that downloads it (SERVER + TOKEN already in the notebook) and chunks it
+     like the other sources. Document it in kaggle/sft-data.
 - Delete a source, rename a chat, copy answer with citations
 - Click a citation to open the PDF at that page
 - Short local-setup guide
