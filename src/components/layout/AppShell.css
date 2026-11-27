@@ -274,4 +274,8 @@
   .topbar-new-source { padding: 8px 10px; }
   .topbar-new-source-label { display: none; }
   .content-area { padding: var(--space-4); }
+  .sidebar { height: 100dvh; }
+  /* Chat fills the screen: the page itself must not scroll, or the header slides away */
+  .app-shell:has(.chat-page) { height: 100dvh; overflow: hidden; }
+  .app-shell:has(.chat-page) .main-area { height: 100dvh; min-height: 0; }
 }

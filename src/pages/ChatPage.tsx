@@ -46,7 +46,7 @@ export const ChatPage: React.FC = () => {
     const [pendingText, setPendingText] = useState<string | null>(null);
     const [showSessions, setShowSessions] = useState(false); // mobile: chat list overlay
     const [waitSeconds, setWaitSeconds] = useState(0);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesRef = useRef<HTMLDivElement>(null);
     const answerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const sourcePickerRef = useRef<HTMLDivElement>(null);
 
@@ -71,7 +71,9 @@ export const ChatPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Scroll only the message list; scrollIntoView also scrolls the page and hides the header on mobile.
+        const el = messagesRef.current;
+        el?.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }, [messages.data, pendingText]);
 
     // Count seconds while waiting so a slow local model doesn't look frozen.
@@ -129,6 +131,8 @@ export const ChatPage: React.FC = () => {
     const handleNewChat = () => {
         setSelectedSession(null);
         setIsNewChat(true);
+        setShowSessions(false);
+        setActiveCitation(null);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -295,7 +299,7 @@ export const ChatPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="thread-messages">
+                <div className="thread-messages" ref={messagesRef}>
                     {messages.isLoading ? (
                         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <Skeleton count={3} height="80px" />
@@ -384,7 +388,6 @@ export const ChatPage: React.FC = () => {
                             </div>
                         </>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 <div className="thread-input">
