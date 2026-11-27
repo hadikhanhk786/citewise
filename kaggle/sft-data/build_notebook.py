@@ -103,7 +103,7 @@ for name, repo, paths, pattern, cap in SOURCES:
         files = sorted(glob.glob(f"{d}/{pattern}", recursive=True)) if pattern else \\
                 sorted(glob.glob(f"{d}/README.md") + glob.glob(f"{d}/**/README.md", recursive=True) + glob.glob(f"{d}/docs/**/*.md", recursive=True))
         for f in files:
-            if "node_modules" in f:
+            if "node_modules" in f or re.search(r"\\.[a-z]+(-[a-z]+)?\\.mdx?$", f):   # skip translations like x.chinese.md
                 continue
             rel = f[len(d) + 1:]
             for c in chunks(clean(open(f, errors="ignore").read(), f)):
