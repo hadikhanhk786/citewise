@@ -2,6 +2,9 @@ import request from 'supertest';
 import { app } from '../app';
 import { createInvite, inviteMatches } from '../lib/invite';
 import { prisma } from '../lib/prisma';
+import jwt from 'jsonwebtoken';
+
+jest.mock('jsonwebtoken', () => ({ verify: jest.fn() }));
 
 jest.mock('../clients/aiClient', () => ({ aiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('../lib/prisma', () => ({
@@ -41,5 +44,32 @@ describe('POST /api/auth/register is invite-only', () => {
       .send({ ...body, invite: createInvite('other@example.com') });
     expect(res.status).toBe(403);
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/auth/invites (admin only)', () => {
+  const asRole = (role: string) => {
+    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'u1', role });
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'u1', email: 'a@example.com', role });
+  };
+  const send = (body: object) => request(app).post('/api/auth/invites').set('Authorization', 'Bearer t').send(body);
+
+  it('403 for a non-admin', async () => {
+    asRole('MEMBER');
+    expect((await send({ email: 'f@example.com' })).status).toBe(403);
+  });
+
+  it('422 for a bad email', async () => {
+    asRole('ADMIN');
+    expect((await send({ email: 'nope' })).status).toBe(422);
+  });
+
+  it('returns a link whose token verifies for that email', async () => {
+    asRole('ADMIN');
+    const res = await send({ email: 'Friend@Example.com', days: 3 });
+    expect(res.status).toBe(201);
+    const url = new URL(res.body.link);
+    expect(url.searchParams.get('email')).toBe('friend@example.com');
+    expect(inviteMatches(url.searchParams.get('invite')!, 'friend@example.com')).toBe(true);
   });
 });

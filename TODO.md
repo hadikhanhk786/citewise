@@ -32,6 +32,8 @@
   - UI: modal with an email field and days (default 7) -> shows the link with a Copy button
   - tests: 403 for non-admin, 422 for bad email, link verifies with `inviteMatches()` for that email
   - no schema change; invites stay stateless (no list/revoke in this item)
+  - [x] part 1: server endpoint + tests done
+  - [ ] part 2: Admin page modal (email + days, shows link with Copy button)
 - [ ] Admin page lists real workspace members instead of `mockAdminUsers` (after the invite item)
 - [ ] **Owner request, do first (after the invite UI):** Training library: the owner adds material from the UI
   (a link, a PDF, an HTML/Markdown/text file). It is indexed into the shared docs library right away (chat

@@ -15,3 +15,10 @@ export const loginSchema = z.object({
     password: z.string(),
   }),
 });
+
+export const createInviteSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+    days: z.number().int().min(1).max(90).optional(),
+  }),
+});
