@@ -14,12 +14,18 @@ GPU 0 trains; GPU 1 runs the teacher (`qwen2.5-coder:14b`) as a judge. Output in
 
 ("code", """BASE = "unsloth/Qwen2.5-Coder-7B-Instruct-bnb-4bit"
 JUDGE = "qwen2.5-coder:14b"
-DATA = "/kaggle/input/citewise-sft-data"
 MAX_SEQ = 2048
 EPOCHS = 2
 EVAL_QUESTIONS = 60
 import os, glob
-print(glob.glob(DATA + "/*"))"""),
+# Kaggle mounts the citewise-sft-data output under /kaggle/input; the exact sub-path varies.
+found = glob.glob("/kaggle/input/**/train.jsonl", recursive=True)
+if not found:
+    for root, dirs, files in os.walk("/kaggle/input"):
+        print(root, files[:5])
+    raise SystemExit("train.jsonl not found under /kaggle/input (is citewise-sft-data attached as input?)")
+DATA = os.path.dirname(found[0])
+print("data:", DATA, os.listdir(DATA))"""),
 
 ("code", """# Judge on GPU 1 (pulls while GPU 0 trains).
 import subprocess, time, urllib.request
