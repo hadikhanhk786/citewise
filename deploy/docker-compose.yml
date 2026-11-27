@@ -83,6 +83,7 @@ services:
     environment:
       DATABASE_URL: postgresql://citewise:${POSTGRES_PASSWORD}@postgres:5432/citewise?schema=public
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 365d # stay signed in until Logout
       PY_AI_BASE_URL: http://rag:8000
       CORS_ORIGIN: ${CORS_ORIGIN}
 

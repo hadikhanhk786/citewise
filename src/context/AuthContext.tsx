@@ -34,8 +34,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         localStorage.setItem('workspaceId', data.workspaceMemberships[0].workspaceId);
                     }
                 } catch (error) {
+                    // A 401 is handled by the axios interceptor; keep the token if the server was just unreachable.
                     console.error('Failed to fetch user', error);
-                    localStorage.removeItem('token');
                 }
             }
             setIsLoading(false);
