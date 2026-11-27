@@ -167,11 +167,15 @@ export const ChatPage: React.FC = () => {
 
     return (
         <div className={`chat-page ${showSessions ? 'chat-show-sessions' : ''} ${activeCitation ? 'chat-show-citation' : ''}`}>
+            {showSessions && <div className="mobile-only sessions-backdrop" onClick={() => setShowSessions(false)} />}
             {/* Left: Sessions */}
             <div className="chat-sessions">
                 <div className="sessions-header">
                     <h2 className="sessions-title">Chats</h2>
-                    <button className="new-chat-btn" aria-label="New chat" onClick={handleNewChat}><Plus size={16} /></button>
+                    <div className="sessions-actions">
+                        <button className="new-chat-btn" aria-label="New chat" onClick={handleNewChat}><Plus size={16} /></button>
+                        <button className="mobile-only sessions-close" aria-label="Close chats" onClick={() => setShowSessions(false)}><X size={18} /></button>
+                    </div>
                 </div>
                 <div className="sessions-search">
                     <Search size={14} className="sessions-search-icon" />
@@ -200,7 +204,7 @@ export const ChatPage: React.FC = () => {
                                 onClick={() => { setSelectedSession(s.id); setActiveCitation(null); setShowSessions(false); }}
                             >
                                 <span className="session-item-title">{s.title}</span>
-                                <span className="session-item-meta">{s.updatedAt} · {s.messageCount} msgs</span>
+                                <span className="session-item-meta">{s.updatedAt}</span>
                             </button>
                         ))
                     )}

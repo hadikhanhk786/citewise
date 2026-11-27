@@ -497,6 +497,9 @@
   .message { max-width: 100%; }
   .thread-messages { padding: var(--space-4); }
   .chat-sessions, .citations-panel { display: none; }
+  .sessions-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 29; }
+  .sessions-actions { display: flex; align-items: center; gap: var(--space-2); }
+  .sessions-close { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 4px; }
   .chat-show-sessions .chat-sessions {
     display: flex; position: absolute; inset: 0 20% 0 0; z-index: 30; box-shadow: var(--shadow-lg);
   }
