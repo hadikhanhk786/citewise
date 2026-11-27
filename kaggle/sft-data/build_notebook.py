@@ -14,8 +14,9 @@ and writes grounded question/answer pairs. Output: `train.jsonl` and `eval.jsonl
 used by the `citewise-sft-train` notebook. Private, non-commercial use."""),
 
 ("code", """TEACHER = "qwen2.5-coder:14b"
-TIME_BUDGET_H = 3.3          # stop generating and save before Kaggle's limits
+TIME_BUDGET_H = 5.5          # stop generating and save before Kaggle's limits
 PAIRS_PER_CHUNK = 3
+MIN_ANSWER_CHARS = 400       # v1 answers averaged ~270 chars and taught the model to be terse
 EVAL_FRACTION = 0.05
 CHUNK_CHARS = 2400
 
@@ -28,6 +29,12 @@ SOURCES = [
     ("postgres",   "postgres/postgres",              ["doc/src/sgml"],                    "doc/src/sgml/*.sgml",                   250),
     ("redis",      "redis/docs",                     ["content/develop"],                 "content/develop/**/*.md",               150),
     ("system-design", "donnemartin/system-design-primer", ["README.md", "solutions"],     "**/README.md",                          80),
+    ("system-design-ks", "karanpratapsingh/system-design", ["README.md"],                "README.md",                             80),
+    ("system-design-101", "ByteByteGoHq/system-design-101", ["data/guides"],             "data/guides/*.md",                      100),
+    ("node-best-practices", "goldbergyoni/nodebestpractices", ["sections"],              "sections/**/*.md",                      100),
+    ("interview-handbook", "yangshun/tech-interview-handbook", ["apps/website/contents"], "apps/website/contents/**/*.md",        100),
+    ("js-interview", "sudheerj/javascript-interview-questions", ["README.md"],            "README.md",                             80),
+    ("js-questions", "lydiahallie/javascript-questions", ["README.md"],                  "README.md",                             40),
     ("own-projects", None, None, None, 40),   # hadikhanhk786 repos: READMEs + docs as real case studies
 ]
 OWN_REPOS = ["hadikhanhk786/citewise", "hadikhanhk786/docnudge", "hadikhanhk786/ecom-app"]"""),
@@ -111,27 +118,29 @@ print("total chunks:", len(items))"""),
 import json, itertools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROMPT = '''You are a senior software engineer writing training data for a coding assistant.
-Read the source below ({source}: {file}) and write {n} question/answer pairs a working backend
-engineer might ask, answered ONLY from this source:
-1. a precise factual question (API, option, behaviour, limit),
-2. a practical "how do I ..." question answered with a short, correct code example,
+PROMPT = '''You are a principal software engineer writing training data for a coding assistant that should
+give thorough, senior-level answers. Read the source below ({source}: {file}) and write {n} question/answer
+pairs grounded in it:
+1. a practical "how do I ..." question, answered with a correct code example and an explanation of it,
+2. an interview-style question an interviewer would ask about this topic, answered as a strong candidate would,
 3. an applied scenario (debugging, performance, design trade-off) that this source helps solve.
-Answers must be accurate, specific and self-contained (do not say "the source" or "the text").
+Each answer must be 150-350 words: start with the direct answer, then explain WHY, include code where it helps,
+and end with a common pitfall or trade-off. Be accurate and self-contained (never say "the source" or "the text").
 Return JSON: {{"pairs": [{{"question": "...", "answer": "..."}}]}}
 
 SOURCE:
 {text}'''
 
 def ask(item, port):
-    body = {"model": TEACHER, "stream": False, "format": "json", "options": {"temperature": 0.4, "num_ctx": 6144},
+    body = {"model": TEACHER, "stream": False, "format": "json",
+            "options": {"temperature": 0.4, "num_ctx": 8192, "num_predict": 3072},
             "messages": [{"role": "user", "content": PROMPT.format(n=PAIRS_PER_CHUNK, **item)}]}
     req = urllib.request.Request(f"http://127.0.0.1:{port}/api/chat", data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=600) as r:
         pairs = json.loads(json.load(r)["message"]["content"]).get("pairs", [])
     return [{"source": item["source"], "file": item["file"], "question": p["question"].strip(), "answer": p["answer"].strip()}
-            for p in pairs if isinstance(p, dict) and len(str(p.get("answer", ""))) > 80]
+            for p in pairs if isinstance(p, dict) and len(str(p.get("answer", ""))) >= MIN_ANSWER_CHARS]
 
 deadline = time.time() + TIME_BUDGET_H * 3600
 done = ok = 0
