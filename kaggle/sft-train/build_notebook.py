@@ -15,7 +15,8 @@ GPU 0 trains; GPU 1 runs the teacher (`qwen2.5-coder:14b`) as a judge. Output in
 ("code", """BASE = "unsloth/Qwen2.5-Coder-7B-Instruct-bnb-4bit"
 JUDGE = "qwen2.5-coder:14b"
 MAX_SEQ = 2048
-EPOCHS = 2
+EPOCHS = 1          # v1 used 2 epochs at 2e-4 and lost to the base model
+LR = 1e-4
 EVAL_QUESTIONS = 60
 import os, glob
 # Kaggle mounts the citewise-sft-data output under /kaggle/input; the exact sub-path varies.
@@ -58,7 +59,7 @@ print(ds)"""),
 ("code", """trainer = SFTTrainer(
     model=model, tokenizer=tok, train_dataset=ds["train"], eval_dataset=ds["eval"],
     args=SFTConfig(dataset_text_field="text", max_seq_length=MAX_SEQ, per_device_train_batch_size=2,
-                   gradient_accumulation_steps=8, num_train_epochs=EPOCHS, learning_rate=2e-4,
+                   gradient_accumulation_steps=8, num_train_epochs=EPOCHS, learning_rate=LR,
                    warmup_ratio=0.03, lr_scheduler_type="cosine", logging_steps=10, eval_strategy="epoch",
                    fp16=True, optim="adamw_8bit", output_dir="/tmp/out", report_to="none", seed=7))
 trainer = train_on_responses_only(trainer, instruction_part="<|im_start|>user\\n",
@@ -70,8 +71,18 @@ print(trainer.evaluate())"""),
 ("code", """# Answer held-out questions with the fine-tuned model and with the base model (adapter disabled).
 import json, random
 random.seed(7)
-evals = [json.loads(l) for l in open(f"{DATA}/eval.jsonl")]
-random.shuffle(evals); evals = evals[:EVAL_QUESTIONS]
+# Balanced across sources (v1's sample was mostly system-design questions).
+from collections import defaultdict
+by_src = defaultdict(list)
+for l in open(f"{DATA}/eval.jsonl"):
+    e = json.loads(l); by_src[e["source"]].append(e)
+for v in by_src.values():
+    random.shuffle(v)
+evals = []
+while len(evals) < EVAL_QUESTIONS and any(by_src.values()):
+    for v in by_src.values():
+        if v and len(evals) < EVAL_QUESTIONS:
+            evals.append(v.pop())
 FastLanguageModel.for_inference(model)
 
 def answer(messages):
@@ -125,8 +136,16 @@ report = {"judged": len(scores), "base_avg": avg("base_score"), "tuned_avg": avg
 json.dump({"summary": report, "rows": scores}, open("/kaggle/working/eval_report.json", "w"), indent=1)
 print(json.dumps(report, indent=1))"""),
 
-("code", """# Export to GGUF (q4_k_m) for Ollama.
-model.save_pretrained_gguf("/kaggle/working/gguf", tok, quantization_method="q4_k_m")
+("code", """# Export to GGUF (q4_k_m) for Ollama, only if the fine-tune beat the base model. The merge and f16
+# intermediate need ~30 GB, more than /kaggle/working has, so build in /tmp and copy the final file.
+import shutil
+if report["tuned_avg"] <= report["base_avg"]:
+    raise SystemExit(f"Fine-tune did not beat the base model ({report['tuned_avg']} vs {report['base_avg']}); not exporting.")
+print(shutil.disk_usage("/tmp"))
+model.save_pretrained_gguf("/tmp/gguf", tok, quantization_method="q4_k_m")
+os.makedirs("/kaggle/working/gguf", exist_ok=True)
+for f in glob.glob("/tmp/gguf/*q4_k_m*.gguf") or glob.glob("/tmp/gguf/*.gguf"):
+    shutil.copy(f, "/kaggle/working/gguf/")
 gguf = sorted(glob.glob("/kaggle/working/gguf/*.gguf"))
 print(gguf)
 open("/kaggle/working/Modelfile", "w").write(
