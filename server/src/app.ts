@@ -14,6 +14,7 @@ import { sourcesRoutes } from './modules/sources/sources.routes';
 import { chatRoutes } from './modules/chat/chat.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
+import { libraryRoutes } from './modules/library/library.routes';
 
 export const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/sources', sourcesRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/library', libraryRoutes);
 // app.use('/api/health', healthRoutes);
 // app.use('/api/health', healthRoutes);
 

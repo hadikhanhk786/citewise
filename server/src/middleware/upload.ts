@@ -20,18 +20,24 @@ const limits = {
 };
 
 // File filter for type validation
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  
-  if (!ALLOWED_MIME_TYPES.includes(file.mimetype) || !ALLOWED_EXTENSIONS.includes(ext)) {
-    return cb(new AppError('Invalid file type. Only .txt, .md, and .pdf are allowed.', 400));
-  }
-  
-  cb(null, true);
-};
+const makeFilter = (mimes: string[], exts: string[]) =>
+  (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!mimes.includes(file.mimetype) || !exts.includes(ext)) {
+      return cb(new AppError(`Invalid file type. Only ${exts.join(', ')} are allowed.`, 400));
+    }
+    cb(null, true);
+  };
 
 export const upload = multer({
   storage,
   limits,
-  fileFilter,
+  fileFilter: makeFilter(ALLOWED_MIME_TYPES, ALLOWED_EXTENSIONS),
+});
+
+// Training library (ADMIN only) also accepts HTML pages
+export const libraryUpload = multer({
+  storage,
+  limits,
+  fileFilter: makeFilter([...ALLOWED_MIME_TYPES, 'text/html'], [...ALLOWED_EXTENSIONS, '.html', '.htm']),
 });

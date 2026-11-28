@@ -41,6 +41,7 @@
   dependencies, no schema change: everything lives in `rag_chunks` under `settings.LIBRARY_WORKSPACE_ID`
   with `source_id = "lib:user:<slug>"` and metadata `{title, url, addedBy, addedAt}`. One step per commit:
   - [x] step 1 done (python-service endpoints + tests)
+  - [x] step 2 done (server /api/library routes + tests)
   1. python-service: `POST /library/add` (multipart `file` OR form `url`, plus `title`): PDF via `PDFService`,
      HTML via the stdlib parser in `services/websearch.py`, md/txt as-is; chunk + embed like
      `scripts/build_library.py`. `GET /library/items` (distinct user-added sources with chunk counts) and
