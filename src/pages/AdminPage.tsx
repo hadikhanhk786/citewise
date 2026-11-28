@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { UserPlus, Copy, RefreshCw, Download, Trash2, Key, Shield, Clock } from 'lucide-react';
 import { PageHeader } from '../components/layout';
-import { Button, Badge, DataTable, ConfirmModal, SkeletonTable } from '../components/ui';
+import { Button, Badge, DataTable, ConfirmModal, Modal, Input, SkeletonTable } from '../components/ui';
 import type { Column } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
 import { useAdminUsers, useApiKeys } from '../hooks/useApi';
 import type { AdminUser, ApiKey } from '../lib/mock-data';
+import { createInviteLink } from '../lib/api';
+import { parseApiError } from '../lib/errors';
 import './AdminPage.css';
 
 export const AdminPage: React.FC = () => {
@@ -14,6 +16,34 @@ export const AdminPage: React.FC = () => {
     const apiKeys = useApiKeys();
     const [retentionDays, setRetentionDays] = useState(90);
     const [deleteKeyModal, setDeleteKeyModal] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+
+    const [inviteOpen, setInviteOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteDays, setInviteDays] = useState(7);
+    const [inviteLink, setInviteLink] = useState('');
+    const [inviteError, setInviteError] = useState('');
+    const [inviteBusy, setInviteBusy] = useState(false);
+
+    const closeInvite = () => { setInviteOpen(false); setInviteEmail(''); setInviteDays(7); setInviteLink(''); setInviteError(''); };
+    const generateInvite = async () => {
+        setInviteBusy(true);
+        setInviteError('');
+        try {
+            setInviteLink(await createInviteLink(inviteEmail.trim(), inviteDays));
+        } catch (err) {
+            setInviteError(parseApiError(err).message);
+        } finally {
+            setInviteBusy(false);
+        }
+    };
+    const copyInvite = async () => {
+        try {
+            await navigator.clipboard.writeText(inviteLink);
+            toast.addToast('Invite link copied', 'success');
+        } catch {
+            toast.addToast('Could not copy; select the link and copy it manually', 'error');
+        }
+    };
 
     const userColumns: Column<AdminUser>[] = [
         {
@@ -69,7 +99,7 @@ export const AdminPage: React.FC = () => {
                         <Shield size={18} />
                         <h3>User Roles</h3>
                     </div>
-                    <Button variant="secondary" size="sm" icon={<UserPlus size={14} />}>Invite Member</Button>
+                    <Button variant="secondary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInviteOpen(true)}>Invite Member</Button>
                 </div>
                 {users.isLoading ? <SkeletonTable rows={3} cols={3} /> : (
                     <DataTable columns={userColumns} data={users.data || []} keyField="id" />
@@ -128,6 +158,28 @@ export const AdminPage: React.FC = () => {
                     Export Report
                 </Button>
             </section>
+
+            <Modal
+                open={inviteOpen}
+                onClose={closeInvite}
+                title="Invite Member"
+                footer={inviteLink
+                    ? <Button variant="secondary" onClick={closeInvite}>Done</Button>
+                    : <Button onClick={generateInvite} disabled={inviteBusy || !inviteEmail.trim()}>{inviteBusy ? 'Creating...' : 'Create invite link'}</Button>}
+            >
+                {inviteLink ? (
+                    <div>
+                        <p className="retention-desc">Send this link to {inviteEmail.trim()}. It works only for that email and expires in {inviteDays} days.</p>
+                        <Input label="Invite link" value={inviteLink} readOnly onFocus={e => e.currentTarget.select()} />
+                        <Button variant="secondary" size="sm" icon={<Copy size={14} />} onClick={copyInvite}>Copy</Button>
+                    </div>
+                ) : (
+                    <div>
+                        <Input label="Email" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} error={inviteError} />
+                        <Input label="Valid for (days)" type="number" min={1} max={90} value={inviteDays} onChange={e => setInviteDays(Number(e.target.value) || 7)} />
+                    </div>
+                )}
+            </Modal>
 
             <ConfirmModal
                 open={deleteKeyModal.open}

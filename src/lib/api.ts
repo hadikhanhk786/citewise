@@ -34,6 +34,12 @@ interface ApiMessage { id: string; sender: string; content: string; createdAt: s
 interface ApiSession { id: string; title: string; createdAt: string }
 interface UploadResult { id?: string; [key: string]: unknown }
 
+/* ===== Invites (ADMIN only) ===== */
+export const createInviteLink = async (email: string, days: number): Promise<string> => {
+  const { data } = await apiClient.post<{ link: string }>('/auth/invites', { email, days });
+  return data.link;
+};
+
 /* ===== Health ===== */
 export const fetchHealth = async (): Promise<{ status: 'healthy' | 'degraded' | 'down' }> => {
   const { data } = await apiClient.get('/health');
