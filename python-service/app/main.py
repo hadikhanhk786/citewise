@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import health, ingest, rag, grounded
+from .routers import health, ingest, rag, grounded, library
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from .db.session import engine, Base
@@ -47,6 +47,7 @@ app.add_middleware(
 # Routers
 app.include_router(health.router)
 app.include_router(ingest.router)
+app.include_router(library.router)
 app.include_router(rag.router, prefix="/rag")
 app.include_router(grounded.router, prefix="/rag")
 

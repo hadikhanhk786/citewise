@@ -68,6 +68,20 @@ def _best_text(text: str, query: str) -> str:
     return "\n\n".join(paras[i] for i in sorted(keep))
 
 
+def html_to_text(raw: str) -> tuple[str, str]:
+    """(title, readable text) of an HTML page."""
+    parser = _Text()
+    try:
+        parser.feed(raw)
+    except Exception:
+        pass
+    return parser.title.strip(), re.sub(r"[ \t]+", " ", "".join(parser.parts))
+
+
+def fetch_url(url: str) -> bytes:
+    return _get(url, timeout=15)
+
+
 def _page(result: dict, query: str):
     try:
         raw = _get(result["url"], timeout=6).decode("utf-8", errors="ignore")
